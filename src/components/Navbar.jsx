@@ -6,8 +6,8 @@ export default function Navbar() {
   const navItems = [
     { path: '/', label: 'Home' },
     { path: '/planner', label: 'Planner' },
-    { path: '/guesthouses', label: 'Guesthouses' },
-    { path: '/passes', label: 'Passes' },
+    // { path: '/guesthouses', label: 'Guesthouses' },
+    // { path: '/passes', label: 'Passes' },
   ];
 
   return (

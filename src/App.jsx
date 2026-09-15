@@ -7,8 +7,8 @@ import Footer from './components/Footer.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import Home from './pages/Home.jsx';
 import Planner from './pages/Planner.jsx';
-import Guesthouses from './pages/Guesthouses.jsx';
-import PassStatus from './pages/PassStatus.jsx';
+// import Guesthouses from './pages/Guesthouses.jsx';
+// import PassStatus from './pages/PassStatus.jsx';
 
 export default function App() {
   const location = useLocation();
@@ -26,8 +26,8 @@ export default function App() {
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<Home />} />
             <Route path="/planner" element={<Planner />} />
-            <Route path="/guesthouses" element={<Guesthouses />} />
-            <Route path="/passes" element={<PassStatus />} />
+            {/* <Route path="/guesthouses" element={<Guesthouses />} /> */}
+            {/* <Route path="/passes" element={<PassStatus />} /> */}
           </Routes>
         </AnimatePresence>
       </main>

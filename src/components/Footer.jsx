@@ -13,9 +13,9 @@ export default function Footer() {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4 content-start">
-          <Link to="/passes" className="font-body text-sm text-on-background/40 hover:text-secondary transition-all text-left">Road Safety</Link>
-          <Link to="/passes" className="font-body text-sm text-on-background/40 hover:text-secondary transition-all text-left">Pass Status</Link>
-          <Link to="/guesthouses" className="font-body text-sm text-on-background/40 hover:text-secondary transition-all text-left">Guesthouses</Link>
+          <Link to="/planner" className="font-body text-sm text-on-background/40 hover:text-secondary transition-all text-left">Route Planner</Link>
+          <Link to="/planner" className="font-body text-sm text-on-background/40 hover:text-secondary transition-all text-left">AI Itineraries</Link>
+          <Link to="/planner" className="font-body text-sm text-on-background/40 hover:text-secondary transition-all text-left">Expedition Rules</Link>
           <Link to="/planner" className="font-body text-sm text-on-background/40 hover:text-secondary transition-all text-left">Plan a Trip</Link>
         </div>
       </div>

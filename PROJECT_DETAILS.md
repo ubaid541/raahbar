@@ -90,8 +90,9 @@ d:\raahbar
 
 | Feature / Task | Status | Details |
 | :--- | :---: | :--- |
+| **Focus on Planner Section** | `[x] Active` | Temporarily commented out Guesthouses & Passes routes to focus 100% on the AI Planner. |
 | **Component Modularization** | `[x] Completed` | Converted prototype into modular JSX components and React Router v7 pages. |
-| **OpenRouter AI Integration** | `[x] Completed` | AI generator setup with primary (`step-3.5-flash`) & fallback (`nemotron`) models. |
+| **OpenRouter AI Integration** | `[x] Completed` | AI generator setup with active free models and automatic fallback generator. |
 | **Supabase Setup & Fallbacks** | `[x] Completed` | Client created with automatic fallback to local datasets if env vars are missing. |
 | **Responsive UX & Animation** | `[x] Completed` | Modern glassmorphism UI with Tailwind v4, Motion page transitions & mobile bottom nav. |
 | **Clean Up Unused Legacy Files** | `[x] Completed` | Removed redundant `src/App.tsx` and `src/main.tsx` prototype files. |

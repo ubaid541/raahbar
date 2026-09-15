@@ -36,13 +36,7 @@ export default function Home() {
               to="/planner"
               className="bg-primary text-background px-10 py-5 rounded-2xl font-headline font-black text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-2xl shadow-primary/20 min-h-[48px] flex items-center justify-center"
             >
-              Plan Your Ride
-            </Link>
-            <Link
-              to="/passes"
-              className="bg-surface-high border border-white/10 text-on-surface px-10 py-5 rounded-2xl font-headline font-black text-lg uppercase tracking-widest hover:bg-surface-highest transition-all min-h-[48px] flex items-center justify-center"
-            >
-              Check Passes
+              Start Expedition Planner
             </Link>
           </div>
         </div>
@@ -51,19 +45,19 @@ export default function Home() {
       {/* Features */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="p-8 rounded-3xl bg-surface border border-white/5 space-y-4">
-          <RefreshCw className="text-secondary w-10 h-10" />
-          <h3 className="font-headline text-2xl font-bold">Live Pass Status</h3>
-          <p className="text-on-surface-variant">Real-time status of high-altitude passes, seasonal alerts, and road conditions updated regularly.</p>
+          <RouteIcon className="text-secondary w-10 h-10" />
+          <h3 className="font-headline text-2xl font-bold">Custom AI Routes</h3>
+          <p className="text-on-surface-variant">Day-by-day expedition routing tailored to your motorcycle type, travel duration, and season.</p>
         </div>
         <div className="p-8 rounded-3xl bg-surface border border-white/5 space-y-4">
-          <Bed className="text-tertiary w-10 h-10" />
-          <h3 className="font-headline text-2xl font-bold">Rider Basecamps</h3>
-          <p className="text-on-surface-variant">Hand-picked guesthouses with secure motorcycle parking, mechanics on call, and hot showers.</p>
+          <RefreshCw className="text-tertiary w-10 h-10" />
+          <h3 className="font-headline text-2xl font-bold">Altitude & Pass Alerts</h3>
+          <p className="text-on-surface-variant">Automatic altitude hypoxia warnings and pass timing guidelines embedded into every day's route.</p>
         </div>
         <div className="p-8 rounded-3xl bg-surface border border-white/5 space-y-4">
           <RouteIcon className="text-primary w-10 h-10" />
-          <h3 className="font-headline text-2xl font-bold">AI Itineraries</h3>
-          <p className="text-on-surface-variant">Custom expedition routes optimized for your bike type, experience level, and seasonal constraints.</p>
+          <h3 className="font-headline text-2xl font-bold">Gear & Permit Checklist</h3>
+          <p className="text-on-surface-variant">Comprehensive gear lists and travel permit requirement breakdown for high-altitude passes.</p>
         </div>
       </section>
 

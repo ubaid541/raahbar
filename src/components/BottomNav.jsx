@@ -6,8 +6,8 @@ export default function BottomNav() {
   const navItems = [
     { path: '/', label: 'Home', Icon: HomeIcon },
     { path: '/planner', label: 'Planner', Icon: RouteIcon },
-    { path: '/guesthouses', label: 'Beds', Icon: Bed },
-    { path: '/passes', label: 'Passes', Icon: Mountain },
+    // { path: '/guesthouses', label: 'Beds', Icon: Bed },
+    // { path: '/passes', label: 'Passes', Icon: Mountain },
   ];
 
   return (
