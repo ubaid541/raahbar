@@ -1,11 +1,9 @@
 import { RAAHBAR_SYSTEM_PROMPT } from './prompts.js';
 
 const MODELS = [
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'google/gemini-2.0-flash-exp:free',
-  'deepseek/deepseek-chat:free',
-  'qwen/qwen-2.5-72b-instruct:free',
   'stepfun/step-3.5-flash',
+  'meta-llama/llama-3.3-70b-instruct',
+  'google/gemini-2.0-flash-001',
 ];
 
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
