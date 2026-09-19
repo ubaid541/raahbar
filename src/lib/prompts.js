@@ -2,15 +2,19 @@ import { CRITICAL_FUEL_GAPS, EMERGENCY_CONTACTS } from '../constants.ts';
 
 // ─── System Prompt ───────────────────────────────────────────────────────────
 // Core domain knowledge — never hallucinate distances or locations.
-export function getSystemPrompt() {
-  return `You are RaahBar, a professional motorcycle expedition planner for Northern Pakistan.
+export function getSystemPrompt(days, start, end) {
+  return `You are RaahBar, a veteran biker and professional motorcycle expedition planner for Pakistan.
 You have deep knowledge of routes in Gilgit-Baltistan (GB), Khyber Pakhtunkhwa (KPK), and AJK.
 
+You are planning a ONE-WAY ${days}-day scenic expedition from ${start} to ${end}.
+
 CRITICAL RULES — follow these absolutely:
-1. NEVER invent or guess distances, km values, or city/town names. Use ONLY the data in the REAL ROUTE DATA section below.
-2. NEVER suggest motorways (M-1, M-2 etc.) — motorcycles are prohibited on Pakistani motorways.
-3. NEVER suggest highways unless specifically relevant to the route (e.g. N-35 KKH, N-45 Chitral road, N-50 Skardu road).
-4. Use web_search to check current pass status, road closures, and any active landslides before completing the itinerary.
+1. One-Way Journey: Plan the forward journey and local exploration only. Do NOT plan the return trip.
+2. Scenic Detours: The baseline route is often the fastest, but you should design a richer, scenic journey. If taking a beautiful detour makes the trip better, do it!
+3. Pacing: You decide the overnight stops dynamically based on the vehicle and rider experience. Do not blindly divide total distance by days. Use the middle days for travel/scenic stops. Use the final day to explore ultimate highlights around the destination.
+4. NEVER suggest motorways (M-1, M-2 etc.) — motorcycles are prohibited. Use scenic alternative roads.
+5. Provide realistic daily km distance and altitude estimates based on your domain knowledge.
+6. Check web_search for current pass status, road closures, and landslides before completing the itinerary.
 
 CRITICAL DOMAIN KNOWLEDGE:
 - Babusar Pass: Open May–October only. Altitude: 4,173m. Closed by snow Oct–May.
@@ -86,22 +90,26 @@ export function buildUserMessage(tripParams, routeData, weatherData, elevations,
 
   // ── Real Route Data ──
   if (routeData) {
-    sections.push(`REAL ROUTE DATA (from OpenRouteService — use these exact values, do not invent alternatives):
-- Total real road distance: ${routeData.totalDistanceKm} km
-- Total estimated riding time: ${routeData.totalDurationHrs} hours
-- Daily legs breakdown:
-${routeData.dailyLegs
-  .map((leg, i) => {
-    const altM = elevations?.[i + 1] != null ? Math.round(elevations[i + 1]) : null;
-    const altLabel = altM != null ? ` | Altitude at endpoint: ${altM}m` : '';
-    const infraStr = infrastructure?.[i]
-      ? ` | Nearby fuel: ${infrastructure[i].fuelStations?.join(', ') || 'none mapped'} | Nearby hospital: ${infrastructure[i].hospitals?.join(', ') || 'none mapped'}`
-      : '';
-    return `  Day ${leg.dayNumber}: ${leg.distanceKm}km, ~${leg.durationHrs}h riding${altLabel}${infraStr}`;
-  })
-  .join('\n')}`);
+    let infraText = '';
+    if (elevations && elevations.length > 0) {
+       const maxElev = Math.max(...elevations);
+       infraText += `\n- Max route elevation sample: ~${Math.round(maxElev)}m`;
+    }
+    if (infrastructure && infrastructure.length > 0) {
+       const mappedFuel = Array.from(new Set(infrastructure.flatMap(i => i?.fuelStations || [])));
+       const mappedHos = Array.from(new Set(infrastructure.flatMap(i => i?.hospitals || [])));
+       infraText += `\n- Route infrastructure sampled (fuel): ${mappedFuel.length ? mappedFuel.join(', ') : 'scarce'}`;
+       infraText += `\n- Route infrastructure sampled (medical): ${mappedHos.length ? mappedHos.join(', ') : 'scarce'}`;
+    }
+
+    sections.push(`REAL ROUTE DATA (Baseline Direct Route):
+- Fastest highway distance: ${routeData.totalDistanceKm} km
+- Minimum continuous riding time: ${routeData.totalDurationHrs} hours${infraText}
+
+Note: The above distance is the minimum direct route. Since this is a scenic expedition, YOU determine the pacing and beautifully scenic detours, allocating distances across ${tripParams.days} days as you see fit. Overwrite pacing based on vehicle capability (e.g. 125cc vs Adventure).`);
   } else {
-    sections.push(`REAL ROUTE DATA: Not available (use your domain knowledge but add disclaimer that distances are approximate).`);
+    sections.push(`REAL ROUTE DATA: Not available (use your domain knowledge but add disclaimer that distances are approximate).
+Note: Since this is a scenic expedition, YOU determine the pacing and beautifully scenic detours, allocating distances across ${tripParams.days} days as you see fit. Overwrite pacing based on vehicle capability.`);
   }
 
   // ── Live Weather ──
@@ -126,11 +134,12 @@ ${relevantContacts.map((c) => `- ${c.region} ${c.type}: ${c.name}${c.contact ? `
   // ── Final instruction ──
   sections.push(`INSTRUCTIONS:
 1. Use web_search to check current road conditions, pass status, and any active closures/landslides for this route in ${tripParams.month}.
-2. Use ONLY the REAL ROUTE DATA distances and times above. Do NOT change or invent different values.
-3. Populate highlights with REAL, SPECIFIC places along the actual road on that day (e.g. "Attock Bridge", "Lulusar Lake", "Rakaposhi viewpoint") — not generic phrases like "scenic viewpoint".
-4. Apply fuel gap warnings wherever relevant from both the FUEL GAP KNOWLEDGE and the infrastructure data above.
-5. Flag altitude warnings for any day where endpoint altitude exceeds 3,500m, especially for ${tripParams.bikeType} bikes.
-6. Respond ONLY with the JSON structure. No extra text.`);
+2. Design the best scenic route. The REAL ROUTE DATA is just the baseline minimum direct route. You are encouraged to take scenic detours!
+3. Adapt to Vehicle & Experience: For a 125cc bike, restrict aggressive single-day highland climbs and suggest cooling stops. For an Adventure (500cc+) bike, confidently route through steeper terrain. For a Rookie, prioritize paved roads and shorter saddle hours. For a Veteran, include off-road recommendations and longer riding hours.
+4. Populate highlights with REAL, SPECIFIC places along the actual road on that day (e.g. "Attock Bridge", "Lulusar Lake", "Rakaposhi viewpoint").
+5. Apply fuel gap warnings wherever relevant from FUEL GAP KNOWLEDGE and infrastructure data.
+6. Flag altitude warnings for any day crossing above 3,500m, especially for smaller bikes like 125cc.
+7. Respond ONLY with the JSON structure. No extra text.`);
 
   return sections.join('\n\n');
 }

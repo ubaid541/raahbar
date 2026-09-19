@@ -93,28 +93,13 @@ export async function getRouteSegments(origin, destination, totalDays) {
     const totalDistanceKm = Math.round(summary.distance / 1000);
     const totalDurationHrs = Math.round((summary.duration / 3600) * 10) / 10;
 
-    // Distribute total distance evenly across days
-    const avgDailyKm = Math.round(totalDistanceKm / totalDays);
-    const avgDailyHrs = Math.round((totalDurationHrs / totalDays) * 10) / 10;
-
-    // Extract waypoint coordinates from geometry for elevation lookups
+    // Extract waypoint coordinates from geometry to sample points for environmental data lookup.
+    // Sampling 5 points to give the AI context of the overall route terrain/infrastructure.
     const waypoints = data?.routes?.[0]?.geometry?.coordinates || [];
-    // Sample up to totalDays+1 points evenly from the geometry for elevation
-    const sampledPoints = sampleArray(waypoints, totalDays + 1);
+    const rawSampled = sampleArray(waypoints, 5);
+    const sampledCoords = rawSampled.map(coord => ({ lat: coord[1], lng: coord[0] }));
 
-    const dailyLegs = Array.from({ length: totalDays }, (_, i) => ({
-      dayNumber: i + 1,
-      distanceKm: i === totalDays - 1
-        ? totalDistanceKm - avgDailyKm * (totalDays - 1) // last day takes remainder
-        : avgDailyKm,
-      durationHrs: avgDailyHrs,
-      // Endpoint coordinate for this day (for elevation + Overpass lookups)
-      endCoord: sampledPoints[i + 1]
-        ? { lat: sampledPoints[i + 1][1], lng: sampledPoints[i + 1][0] }
-        : null,
-    }));
-
-    return { totalDistanceKm, totalDurationHrs, dailyLegs };
+    return { totalDistanceKm, totalDurationHrs, sampledCoords };
   } catch (err) {
     console.warn('[routing] ORS fetch exception:', err.message);
     return null;

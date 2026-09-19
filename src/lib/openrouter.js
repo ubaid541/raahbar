@@ -205,20 +205,20 @@ export async function generateItinerary(tripParams, onProgress = () => {}, signa
     if (results[0].status === 'fulfilled') routeData = results[0].value;
     if (results[1].status === 'fulfilled') weatherData = results[1].value;
 
-    if (results[0].status === 'fulfilled' && routeData?.dailyLegs) {
-      // Get elevation for each day's leg end coordinate
-      const coordsToElevate = [originCoords, ...routeData.dailyLegs.map((l) => l.endCoord).filter(Boolean)];
+    if (results[0].status === 'fulfilled' && routeData?.sampledCoords) {
+      // Get elevation for sampled route coordinates
+      const coordsToElevate = routeData.sampledCoords;
       try {
         elevations = await getElevations(coordsToElevate);
       } catch (err) {
         console.warn('[openrouter] Elevation fetch failed:', err.message);
       }
 
-      // Get infrastructure near each day's leg end coordinate
+      // Get infrastructure near sampled route coordinates
       onProgress('⛽ Checking fuel stations & emergency medical hubs...');
       try {
         const infraResults = await Promise.allSettled(
-          routeData.dailyLegs.map((l) => (l.endCoord ? getNearbyInfrastructure(l.endCoord, 20) : Promise.resolve(null)))
+          routeData.sampledCoords.map((coord) => getNearbyInfrastructure(coord, 20))
         );
         infrastructure = infraResults.map((r) => (r.status === 'fulfilled' ? r.value : null));
       } catch (err) {
@@ -229,7 +229,7 @@ export async function generateItinerary(tripParams, onProgress = () => {}, signa
 
   // Step 3: Build AI prompt & Invoke Model
   onProgress('🤖 AI is scanning live pass status & terrain alerts...');
-  const systemPrompt = getSystemPrompt();
+  const systemPrompt = getSystemPrompt(daysNum, tripParams.from, tripParams.to);
   const userMessage = buildUserMessage(
     tripParams,
     routeData,
