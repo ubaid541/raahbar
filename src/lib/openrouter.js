@@ -1,4 +1,11 @@
-import { RAAHBAR_SYSTEM_PROMPT } from './prompts.js';
+import { getSystemPrompt, buildUserMessage } from './prompts.js';
+import {
+  geocodeLocation,
+  getRouteSegments,
+  getWeather,
+  getElevations,
+  getNearbyInfrastructure,
+} from './routing.js';
 
 const MODELS = [
   'stepfun/step-3.5-flash',
@@ -8,29 +15,40 @@ const MODELS = [
 
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-async function callOpenRouter(model, userMessage) {
+/**
+ * Call OpenRouter API with optional AbortSignal and web_search tool options.
+ */
+async function callOpenRouter(model, systemPrompt, userMessage, signal) {
   const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error('VITE_OPENROUTER_API_KEY is missing');
   }
 
+  const payload = {
+    model,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage },
+    ],
+    temperature: 0.7,
+    max_tokens: 3000,
+  };
+
+  // Enable web_search tool if using stepfun model
+  if (model.includes('stepfun')) {
+    payload.tools = [{ type: 'web_search' }];
+  }
+
   const response = await fetch(API_URL, {
     method: 'POST',
+    signal,
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'https://raahbar.pk',
-      'X-Title': 'RaahBar',
+      'X-Title': 'RaahBar Expedition Planner',
     },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: RAAHBAR_SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
-      temperature: 0.7,
-      max_tokens: 2500,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
@@ -42,99 +60,208 @@ async function callOpenRouter(model, userMessage) {
 }
 
 /**
- * Fallback static itinerary generator in case AI models fail or API key expires.
+ * Fallback itinerary generator if live AI models fail or are rate-limited.
+ * Dynamically tailored to tripParams and routeData instead of hardcoded Karakoram assumptions.
  */
-function createFallbackItinerary(tripParams) {
-  const daysNum = parseInt(tripParams.days, 10) || 7;
-  const daysList = [];
+function createFallbackItinerary(tripParams, routeData = null, weatherData = null) {
+  const daysNum = parseInt(tripParams.days, 10) || 3;
+  const from = tripParams.from || 'Start';
+  const to = tripParams.to || 'Destination';
 
-  const routeStops = [
-    { start: tripParams.from, end: 'Abbottabad / Mansehra', title: 'Start Journey & Lower Hills', highlight: 'Hazara Motorway view', sleep: 'Pine View Hotel' },
-    { start: 'Mansehra', end: 'Naran / Kaghan Valley', title: 'Ascend Kaghan Valley', highlight: 'Balakot River, Lulusar Lake', sleep: 'Naran River Inn' },
-    { start: 'Naran', end: 'Chilas / Gilgit', title: 'Cross Babusar & KKH Junction', highlight: 'Babusar Summit (4,173m), Indus River View', sleep: 'Serena Hotel Gilgit' },
-    { start: 'Gilgit', end: 'Hunza (Karimabad)', title: 'Heart of the Karakoram', highlight: 'Rakaposhi View Point, Altit Fort', sleep: 'Hunza Serena Inn' },
-    { start: 'Karimabad', end: 'Passu / Gojal', title: 'Passu Cones & Attabad Lake', highlight: 'Attabad Lake Boat Tour, Passu Cathedral', sleep: 'Passu Peaks Lodge' },
-    { start: 'Passu', end: 'Khunjerab Pass & Back to Hunza', title: 'Summit World\'s Highest Border', highlight: 'Khunjerab Pass (4,693m), China Border Gate', sleep: 'Karimabad Guesthouse' },
-    { start: 'Hunza', end: 'Return to ' + tripParams.from, title: 'Homeward Journey', highlight: 'Karakoram Highway Southbound', sleep: 'Home Destination' },
-  ];
+  const routeText = `${from} ${to}`.toLowerCase();
+  const isHighAltitudeGB = /gilgit|hunza|skardu|khunjerab|babusar|deosai|shandur|passu|altit|baltit|karimabad|nagar|ghizer/i.test(routeText);
+
+  const totalDist = routeData?.totalDistanceKm || (isHighAltitudeGB ? daysNum * 120 : Math.min(daysNum * 35, 120));
+  const totalDur = routeData?.totalDurationHrs || Math.round(totalDist / 40);
+
+  const daysList = [];
+  const dailyDist = Math.round(totalDist / daysNum);
+  const dailyDur = Math.round((totalDur / daysNum) * 10) / 10;
 
   for (let i = 1; i <= daysNum; i++) {
-    const stopIndex = (i - 1) % routeStops.length;
-    const stop = routeStops[stopIndex];
+    const isStartDay = i === 1;
+    const isEndDay = i === daysNum;
+
+    let startLoc = from;
+    let endLoc = to;
+    let title = `${from} to ${to}`;
+
+    if (daysNum > 1) {
+      if (isStartDay) {
+        endLoc = to;
+        title = `Departure: ${from} to ${to}`;
+      } else if (isEndDay) {
+        startLoc = to;
+        endLoc = from;
+        title = `Return: ${to} to ${from}`;
+      } else {
+        startLoc = to;
+        endLoc = `${to} Surrounds`;
+        title = `Exploring ${to}`;
+      }
+    }
+
     daysList.push({
       day: i,
-      title: `Day ${i}: ${stop.title}`,
-      distance: `${Math.floor(120 + Math.random() * 80)} km`,
-      duration: `${4 + (i % 3)} hours`,
-      startLocation: stop.start,
-      endLocation: stop.end,
-      highlights: [stop.highlight, 'Local Chai Stop', 'Scenic Photography Point'],
-      fuelStops: [i === 2 ? 'Balakot Fuel Station (Fill Extra 5L)' : 'Main Highway Station'],
-      sleepLocation: stop.sleep,
-      warnings: i === 3 || i === 6 ? ['Altitude above 3,500m - Watch for Hypoxia', 'SCOM SIM required'] : [],
-      tips: 'Inspect tire pressure and chain tension every morning before departure.',
+      title: `Day ${i}: ${title}`,
+      distanceKm: dailyDist,
+      durationHrs: dailyDur,
+      startLocation: startLoc,
+      endLocation: endLoc,
+      altitudeM: isHighAltitudeGB ? (i === 1 ? 1500 : 2800) : 1200,
+      altitudeLevel: isHighAltitudeGB ? 'HIGH' : 'MID',
+      highlights: [
+        `${endLoc} Viewpoint & Scenic Stops`,
+        'Local Chai & Refreshment Stop',
+        'Photography & Mountain Vistas',
+      ],
+      fuelStops: [`Town Petrol Station (${startLoc})`],
+      fuelWarning: isHighAltitudeGB && i === 2 ? 'Check fuel before ascending high valley stretches.' : null,
+      sleepLocation: isEndDay ? from : `${to} Hotel / Guesthouse`,
+      warnings: isHighAltitudeGB && i === 2 ? ['High elevation — stay hydrated and dress warm.'] : [],
+      tips: 'Check tire pressure and oil level before setting off each morning.',
     });
   }
 
+  const warnings = [];
+  if (isHighAltitudeGB) {
+    warnings.push('SCOM SIM recommended for mobile signal in Gilgit-Baltistan.');
+    warnings.push('High altitude pass weather changes rapidly — keep extra layers accessible.');
+  }
+
   return {
-    tripTitle: `Expedition: ${tripParams.from} to ${tripParams.to}`,
+    tripTitle: `${from} to ${to} Trip`,
     totalDays: daysNum,
-    totalDistance: `${daysNum * 160} km`,
-    startPoint: tripParams.from,
-    endPoint: tripParams.to,
-    bestMonths: `${tripParams.month} (Ideal riding window)`,
-    warnings: [
-      'Babusar Pass is seasonal (May–Oct). Verify live status before departing.',
-      'Always carry extra 5L petrol past Chilas — long distances between pumps.',
-      'SCOM SIM is mandatory for mobile connectivity across Gilgit-Baltistan.',
-    ],
+    totalDistanceKm: totalDist,
+    totalDurationHrs: totalDur,
+    startPoint: from,
+    endPoint: to,
+    weatherSummary: weatherData?.condition
+      ? `${weatherData.condition} (${weatherData.tempC}°C)`
+      : 'Pleasant riding conditions expected.',
+    bestMonths: `${tripParams.month} (Good riding window)`,
+    warnings: warnings,
     days: daysList,
     gearChecklist: [
-      'Dual-sport / Full-face ECE Helmet',
-      'Thermal Underlayers & Windproof Jacket',
-      'Tire Plug Repair Kit & Portable Air Pump',
-      'Basic Mechanical Toolset & Spare Clutch Cable',
-      'First Aid Kit & Altitude Sickness Pills (Diamox)',
+      'Full-face / Modular Helmet',
+      'Riding Jacket with Armor',
+      'Rain Suit / Waterproof Layer',
+      'Basic Tool Kit & Puncture Repair Set',
+      'First Aid Kit',
     ],
-    permits: [
-      'Gilgit-Baltistan Entry Checkpoint Registration',
-      'Khunjerab National Park Ticket (Local Checkpoint)',
-      'NOC required if traveling to restricted LoC/border zones',
+    permits: isHighAltitudeGB ? ['National Park Entry Ticket at Checkpoint'] : [],
+    emergencyContacts: [
+      'Rescue 1122',
+      'Local District Hospital',
     ],
   };
 }
 
 /**
- * Generates a trip itinerary using OpenRouter with multi-model fallback.
- * @param {{ from: string, to: string, days: string, month: string, bikeType: string, expLevel: string }} tripParams
- * @returns {Promise<object>} Parsed itinerary JSON
+ * Full Agent Pipeline:
+ *  1. Geocode start & end via Nominatim
+ *  2. Parallel fetch: ORS route + Open-Meteo weather + Open-Meteo elevation + Overpass infrastructure
+ *  3. AI enrichment with stepfun web_search
+ *
+ * @param {object} tripParams  { from, to, days, month, bikeType, expLevel }
+ * @param {function} [onProgress] Callback for step progress messages
+ * @param {AbortSignal} [signal] AbortSignal for request cancellation
+ * @returns {Promise<object>} Grounded, complete itinerary JSON
  */
-export async function generateItinerary(tripParams) {
-  const userMessage = `Plan a motorcycle trip with these details:
-- Starting city: ${tripParams.from}
-- Destination: ${tripParams.to}
-- Duration: ${tripParams.days} days
-- Travel month: ${tripParams.month}
-- Bike type: ${tripParams.bikeType}
-- Experience level: ${tripParams.expLevel}
+export async function generateItinerary(tripParams, onProgress = () => {}, signal = null) {
+  const daysNum = parseInt(tripParams.days, 10) || 7;
 
-Generate the full day-by-day itinerary in the JSON format specified.`;
+  // Step 1: Geocoding
+  onProgress('🗺️ Locating start city and destination...');
+  let originCoords = null;
+  let destCoords = null;
+  try {
+    const [orig, dest] = await Promise.all([
+      geocodeLocation(tripParams.from),
+      geocodeLocation(tripParams.to),
+    ]);
+    originCoords = orig;
+    destCoords = dest;
+  } catch (err) {
+    console.warn('[openrouter] Geocoding failed:', err.message);
+  }
 
+  // Step 2: Parallel Data Fetch (Route + Weather + Elevation + Overpass)
+  onProgress('🛣️ Fetching real road distances & terrain data...');
+  let routeData = null;
+  let weatherData = null;
+  let elevations = null;
+  let infrastructure = null;
+
+  if (originCoords && destCoords) {
+    const results = await Promise.allSettled([
+      getRouteSegments(originCoords, destCoords, daysNum),
+      getWeather(destCoords),
+      // We will fetch elevations for origin + daily leg end points
+      getElevations([originCoords, destCoords]),
+      getNearbyInfrastructure(destCoords, 30),
+    ]);
+
+    if (results[0].status === 'fulfilled') routeData = results[0].value;
+    if (results[1].status === 'fulfilled') weatherData = results[1].value;
+
+    if (results[0].status === 'fulfilled' && routeData?.dailyLegs) {
+      // Get elevation for each day's leg end coordinate
+      const coordsToElevate = [originCoords, ...routeData.dailyLegs.map((l) => l.endCoord).filter(Boolean)];
+      try {
+        elevations = await getElevations(coordsToElevate);
+      } catch (err) {
+        console.warn('[openrouter] Elevation fetch failed:', err.message);
+      }
+
+      // Get infrastructure near each day's leg end coordinate
+      onProgress('⛽ Checking fuel stations & emergency medical hubs...');
+      try {
+        const infraResults = await Promise.allSettled(
+          routeData.dailyLegs.map((l) => (l.endCoord ? getNearbyInfrastructure(l.endCoord, 20) : Promise.resolve(null)))
+        );
+        infrastructure = infraResults.map((r) => (r.status === 'fulfilled' ? r.value : null));
+      } catch (err) {
+        console.warn('[openrouter] Infrastructure fetch failed:', err.message);
+      }
+    }
+  }
+
+  // Step 3: Build AI prompt & Invoke Model
+  onProgress('🤖 AI is scanning live pass status & terrain alerts...');
+  const systemPrompt = getSystemPrompt();
+  const userMessage = buildUserMessage(
+    tripParams,
+    routeData,
+    weatherData,
+    elevations,
+    infrastructure
+  );
+
+  onProgress('✨ Finalizing your expedition itinerary...');
   for (const model of MODELS) {
     try {
-      const data = await callOpenRouter(model, userMessage);
+      const data = await callOpenRouter(model, systemPrompt, userMessage, signal);
       const rawContent = data?.choices?.[0]?.message?.content;
       if (rawContent) {
         const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/) || rawContent.match(/(\{[\s\S]*\})/);
         const jsonString = jsonMatch ? jsonMatch[1] : rawContent.trim();
-        return JSON.parse(jsonString);
+        const parsed = JSON.parse(jsonString);
+
+        // Ensure total distance / days fallback if missing
+        if (!parsed.totalDistanceKm && routeData?.totalDistanceKm) {
+          parsed.totalDistanceKm = routeData.totalDistanceKm;
+        }
+        return parsed;
       }
     } catch (err) {
+      if (err.name === 'AbortError') {
+        throw err; // Re-throw abort signal error immediately
+      }
       console.warn(`OpenRouter model (${model}) failed:`, err.message);
     }
   }
 
-  console.warn('All live AI models failed or rate limited. Utilizing smart fallback itinerary generator.');
+  console.warn('All live AI models failed. Utilizing smart fallback itinerary generator.');
   return createFallbackItinerary(tripParams);
 }
-

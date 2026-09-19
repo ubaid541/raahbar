@@ -10,6 +10,7 @@ export default function Planner() {
   const [itinerary, setItinerary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [progressStatus, setProgressStatus] = useState('RaahBar is planning your route...');
 
   return (
     <motion.div
@@ -61,19 +62,25 @@ export default function Planner() {
           onResult={setItinerary}
           onLoading={setLoading}
           onError={setError}
+          onProgress={setProgressStatus}
         />
 
         <section className="lg:col-span-8 space-y-12">
-          {/* Loading State */}
+          {/* Progressive Loading State */}
           {loading && (
-            <div className="flex flex-col items-center justify-center py-24 gap-6">
+            <div className="flex flex-col items-center justify-center py-24 gap-6 bg-surface/40 rounded-3xl border border-white/5 p-8">
               <div className="relative">
                 <Route className="w-16 h-16 text-primary animate-pulse" />
                 <RefreshCw className="w-8 h-8 text-secondary animate-spin absolute -bottom-2 -right-2" />
               </div>
-              <div className="text-center space-y-2">
-                <p className="font-headline text-2xl font-bold">RaahBar is planning your route...</p>
-                <p className="text-on-surface-variant font-label text-sm uppercase tracking-widest">Analyzing passes, fuel stops & altitude risks</p>
+              <div className="text-center space-y-3 max-w-md">
+                <p className="font-headline text-xl font-bold text-primary animate-fade-in">{progressStatus}</p>
+                <div className="w-full bg-surface-highest h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-gradient-to-r from-primary to-secondary h-full animate-pulse w-3/4 rounded-full"></div>
+                </div>
+                <p className="text-on-surface-variant font-label text-xs uppercase tracking-widest">
+                  Live data: Nominatim · OpenRouteService · Open-Meteo · Overpass
+                </p>
               </div>
             </div>
           )}

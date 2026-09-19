@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { generateItinerary } from '../lib/openrouter.js';
 
 const BIKE_TYPES = ['125cc', '150cc', '250cc', 'Adventure', 'Scrambler'];
 const MONTHS = ['April', 'May', 'June', 'July', 'August', 'September', 'October', 'November'];
 const DAYS_OPTIONS = ['3', '5', '7', '10', '14'];
 
-export default function TripForm({ onResult, onLoading, onError }) {
+export default function TripForm({ onResult, onLoading, onError, onProgress }) {
   const [form, setForm] = useState({
     from: 'Islamabad',
     to: '',
@@ -14,6 +14,9 @@ export default function TripForm({ onResult, onLoading, onError }) {
     bikeType: 'Adventure',
     expLevel: 50,
   });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const abortControllerRef = useRef(null);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -25,18 +28,43 @@ export default function TripForm({ onResult, onLoading, onError }) {
       return;
     }
 
+    // Abort any existing in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    setIsSubmitting(true);
     onLoading(true);
     onError(null);
     onResult(null);
 
     try {
       const expLabel = form.expLevel < 34 ? 'Rookie' : form.expLevel < 67 ? 'Intermediate' : 'Veteran';
-      const itinerary = await generateItinerary({ ...form, expLevel: expLabel });
-      onResult(itinerary);
+      const itinerary = await generateItinerary(
+        { ...form, expLevel: expLabel },
+        (statusMsg) => {
+          if (onProgress) onProgress(statusMsg);
+        },
+        abortController.signal
+      );
+
+      // Only set result if not aborted
+      if (!abortController.signal.aborted) {
+        onResult(itinerary);
+      }
     } catch (err) {
+      if (err.name === 'AbortError') {
+        console.log('[TripForm] Previous request aborted.');
+        return;
+      }
       onError(err.message);
     } finally {
-      onLoading(false);
+      if (!abortController.signal.aborted) {
+        setIsSubmitting(false);
+        onLoading(false);
+      }
     }
   };
 
@@ -130,10 +158,13 @@ export default function TripForm({ onResult, onLoading, onError }) {
 
         <button
           type="button"
+          disabled={isSubmitting}
           onClick={handleGenerate}
-          className="w-full bg-gradient-to-r from-primary to-primary-container py-4 rounded-xl font-black font-headline text-background uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-primary/20 min-h-[48px]"
+          className={`w-full bg-gradient-to-r from-primary to-primary-container py-4 rounded-xl font-black font-headline text-background uppercase tracking-widest transition-all shadow-xl shadow-primary/20 min-h-[48px] ${
+            isSubmitting ? 'opacity-60 cursor-not-allowed' : 'hover:brightness-110'
+          }`}
         >
-          Generate Expedition
+          {isSubmitting ? 'Planning Route...' : 'Generate Expedition'}
         </button>
       </div>
     </section>

@@ -7,14 +7,19 @@
 ## 1. Project Overview
 
 - **Repository**: `ubaid541/raahbar`
-- **Primary Objective**: Help motorcycling enthusiasts plan safe, optimized, day-by-day expedition itineraries across Northern Pakistan with real-time pass updates, fuel stop alerts, altitude warnings, permit requirements, and rider-friendly basecamp recommendations.
+- **Primary Objective**: Help motorcycling enthusiasts plan safe, grounded, day-by-day expedition itineraries across Northern Pakistan with real-world road data, live weather, real altitude profiles, fuel gap warnings, permit requirements, and emergency medical/repair contacts.
 - **Tech Stack**:
   - **Frontend Framework**: React 19 (`react`, `react-dom`)
   - **Routing**: React Router v7 (`react-router-dom`)
   - **Build System**: Vite 6 (`vite`)
   - **Styling & Design System**: Tailwind CSS v4 (`@tailwindcss/vite`), Motion (`motion/react`)
   - **Icons**: Lucide React (`lucide-react`)
-  - **AI Service**: OpenRouter API (`stepfun/step-3.5-flash:free` with `nvidia/nemotron` fallback)
+  - **AI Model & Web Search**: OpenRouter API (`stepfun/step-3.5-flash` with `web_search` tool enabled)
+  - **Geocoding API**: OpenStreetMap Nominatim API (Free, keyless)
+  - **Routing API**: OpenRouteService (ORS driving-car profile)
+  - **Weather API**: Open-Meteo Weather API (Free, keyless)
+  - **Elevation API**: Open-Meteo Elevation API (Copernicus DEM 90m, Free, keyless)
+  - **Infrastructure API**: Overpass API / OpenStreetMap (Free, keyless fuel & hospital query)
   - **Database & Backend**: Supabase JS Client (`@supabase/supabase-js`)
 
 ---
@@ -23,66 +28,60 @@
 
 ```
 d:\raahbar
-├── .env                  # Environment variables (OpenRouter key, Supabase configuration)
+├── .env                  # Environment variables (OpenRouter key, ORS key, Supabase config)
 ├── .gitignore            # Git ignore patterns
 ├── README.md             # Standard run and setup guide
 ├── PROJECT_DETAILS.md    # Master project documentation & progress tracker
 ├── index.html            # Main HTML entry point (/src/main.jsx)
-├── metadata.json         # Project metadata
 ├── package.json          # Dependencies, dev dependencies, and scripts
-├── package-lock.json     # Locked dependency graph
 ├── vite.config.js        # Vite build & Tailwind CSS plugin configuration
-├── public/
-│   └── favicon.svg       # Application logo SVG
 └── src/
     ├── App.jsx           # Application router shell & page layout wrapper
-    ├── main.jsx          # React DOM entry point wrapping App with BrowserRouter
-    ├── index.css         # Main stylesheet importing Tailwind CSS v4 & theme variables
-    ├── constants.ts      # Static fallback datasets (Passes, Guesthouses, Mock Routes)
-    ├── types.ts          # TypeScript interface definitions (Screen, MountainPass, Guesthouse, RouteDay)
+    ├── main.jsx          # React DOM entry point
+    ├── index.css         # Main stylesheet with Tailwind CSS v4
+    ├── constants.ts      # Pass & Guesthouse datasets, CRITICAL_FUEL_GAPS, EMERGENCY_CONTACTS
+    ├── types.ts          # TypeScript interfaces
     ├── lib/
-    │   ├── openrouter.js # OpenRouter AI service caller with error handling & JSON parser
-    │   ├── prompts.js    # Domain-specific AI prompt for Northern Pakistan routes
-    │   └── supabase.js   # Supabase client setup with automatic mock fallback
+    │   ├── routing.js    # Grounding module orchestrating Nominatim, ORS, Open-Meteo & Overpass
+    │   ├── openrouter.js # Multi-stage agent pipeline + AbortController + fallback generator
+    │   ├── prompts.js    # Strict anti-hallucination prompt builder with fuel & emergency injection
+    │   └── supabase.js   # Supabase client setup
     ├── components/
-    │   ├── Navbar.jsx           # Top navigation bar (Desktop)
-    │   ├── BottomNav.jsx        # Mobile bottom navigation bar
-    │   ├── Footer.jsx           # Global footer with navigation links
-    │   ├── TripForm.jsx         # Form parameters for expedition generator
-    │   ├── ItineraryOutput.jsx  # Rendered trip results, gear checklist & permit requirements
-    │   ├── ItineraryCard.jsx    # Card component for individual itinerary days
-    │   ├── GuesthouseCard.jsx   # Card displaying guesthouse info & WhatsApp booking action
-    │   └── PassStatusBadge.jsx  # Status indicator badge (OPEN / CLOSED)
+    │   ├── Navbar.jsx           # Top navigation bar
+    │   ├── BottomNav.jsx        # Mobile bottom navigation
+    │   ├── Footer.jsx           # Global footer
+    │   ├── TripForm.jsx         # Form parameters + cancellation + progressive loading steps
+    │   ├── ItineraryOutput.jsx  # Trip header, weather alert, day cards, copy button, emergency contacts
+    │   ├── ItineraryCard.jsx    # Day cards with real distance, duration, altitude level & Google Maps link
+    │   ├── GuesthouseCard.jsx   # Basecamp directory card
+    │   └── PassStatusBadge.jsx  # Pass status badge
     └── pages/
-        ├── Home.jsx         # Hero landing page, features overview & legendary routes
-        ├── Planner.jsx      # AI trip planning interface (TripForm + ItineraryOutput)
-        ├── Guesthouses.jsx  # Basecamp directory with regional filter & rider tips
-        └── PassStatus.jsx   # Real-time mountain pass status & seasonal advisories
+        ├── Home.jsx         # Hero landing page
+        ├── Planner.jsx      # Expedition Planner interface
+        ├── Guesthouses.jsx  # Basecamp directory
+        └── PassStatus.jsx   # Pass status directory
 ```
 
 ---
 
-## 3. Core Features Breakdown
+## 3. Core Features & Pipeline
 
-### 3.1 AI Expedition Planner (`/planner`)
-- **Inputs**: Starting City, Destination, Trip Duration (3–14 days), Travel Month, Bike Type (125cc, 150cc, 250cc, Adventure, Scrambler), and Rider Experience Level (Rookie, Intermediate, Veteran).
-- **AI System Prompt**: Enforces critical domain knowledge:
-  - Seasonal pass availability (Babusar, Shandur, Deosai, Khunjerab).
-  - Fuel gaps (e.g. 200km+ gap on Skardu road, Chilas fuel warning).
-  - Altitude sickness flags for days exceeding 3,500m.
-  - Required SIM cards (SCOM in Gilgit-Baltistan).
-  - Permits (NOC for restricted areas / foreigners).
-- **Output**: Day-by-day route details, checkpoint recommendations, elevation indicators, fuel stop flags, lodging suggestions, essential gear checklist, and travel permits required.
-
-### 3.2 Mountain Pass Status (`/passes`)
-- Live indicators for key passes: Khunjerab, Babusar, Shandur, Lowari, Deosai, Broghil.
-- Displays elevation in meters, open months/seasons, road conditions, and seasonal weather advisories.
-- Queries Supabase `pass_status` table with automatic fallback to static data.
-
-### 3.3 Rider Basecamps / Guesthouses (`/guesthouses`)
-- Directory of motorcycle-friendly accommodation options across Gilgit-Baltistan (GB), Khyber Pakhtunkhwa (KPK), and Azad Jammu & Kashmir (AJK).
-- Tags for "Rider Friendly" and "Budget Pro", direct WhatsApp contact link, and insider advice (parking security, solar power backup, advance booking).
-- Queries Supabase `guesthouses` table with automatic fallback to static data.
+### 3.1 Grounded Agentic AI Planner (`/planner`)
+- **Stage 1 (Parallel Data Fetch)**:
+  - **Nominatim**: Geocodes user start city and destination.
+  - **OpenRouteService**: Fetches exact road distance, duration, and daily legs.
+  - **Open-Meteo Weather**: Retrieves current temperature, rain/snow conditions, wind, and weather alerts for destination.
+  - **Open-Meteo Elevation**: Obtains elevation in meters for each day's endpoint.
+  - **Overpass API**: Searches for mapped fuel stations, hospitals, and motorcycle repair shops near endpoints.
+- **Stage 2 (AI Enrichment)**:
+  - Injects all fetched data into `stepfun/step-3.5-flash`.
+  - Enables `web_search` tool so the model scans live advisories for active landslides, road blockages, and pass openings.
+  - Applies static expert knowledge bases for **CRITICAL_FUEL_GAPS** and **EMERGENCY_CONTACTS**.
+- **Stage 3 (User Experience)**:
+  - Progressive status updates during loading (`🗺️ Locating...`, `🛣️ Fetching road data...`, `🤖 Scanning live passes...`).
+  - Request cancellation (`AbortController`) if user re-submits form while loading.
+  - Google Maps direct links (`https://www.google.com/maps/dir/...`) per day card.
+  - One-click **Copy Expedition Plan** formatted for WhatsApp/clipboard sharing.
 
 ---
 
@@ -90,15 +89,13 @@ d:\raahbar
 
 | Feature / Task | Status | Details |
 | :--- | :---: | :--- |
-| **Focus on Planner Section** | `[x] Active` | Temporarily commented out Guesthouses & Passes routes to focus 100% on the AI Planner. |
-| **Component Modularization** | `[x] Completed` | Converted prototype into modular JSX components and React Router v7 pages. |
-| **OpenRouter AI Integration** | `[x] Completed` | AI generator setup with active free models and automatic fallback generator. |
-| **Supabase Setup & Fallbacks** | `[x] Completed` | Client created with automatic fallback to local datasets if env vars are missing. |
-| **Responsive UX & Animation** | `[x] Completed` | Modern glassmorphism UI with Tailwind v4, Motion page transitions & mobile bottom nav. |
-| **Clean Up Unused Legacy Files** | `[x] Completed` | Removed redundant `src/App.tsx` and `src/main.tsx` prototype files. |
-| **Trip Saving & Sharing** | `[ ] Pending` | Allow users to save generated AI trips to database & generate shareable links. |
-| **Interactive Map & Elevation** | `[ ] Pending` | Add visual route map (Leaflet/Mapbox) and elevation profile graph. |
-| **Live Weather API Integration** | `[ ] Pending` | Fetch live meteorological advisory for mountain passes. |
+| **Planner Real-World Grounding** | `[x] Completed` | Grounded AI planner in ORS, Nominatim, Open-Meteo, Overpass & stepfun web_search. |
+| **Fuel Gap & Emergency Database** | `[x] Completed` | Added hand-verified fuel gaps & regional emergency contacts in `constants.ts`. |
+| **Altitude & Terrain Engine** | `[x] Completed` | Open-Meteo Elevation integration with altitude level badges and acclimatization warnings. |
+| **Progressive Status & Abort Logic** | `[x] Completed` | Added real-time stage progress updates and request cancellation support. |
+| **Google Maps Deep-Links & Copying** | `[x] Completed` | Added Google Maps direction links per day card and one-click copy button. |
+| **Focus on Planner Section** | `[x] Active` | Guesthouses & Passes routes temporarily commented out to focus 100% on Expedition Planner. |
+| **Supabase Sync & Trip Saving** | `[ ] Pending` | Allow riders to save generated trips to Supabase database. |
 
 ---
 
@@ -110,7 +107,10 @@ In `.env`:
 # OpenRouter API Key for AI Expedition Planner
 VITE_OPENROUTER_API_KEY="sk-or-v1-..."
 
-# Supabase Credentials (Optional — static fallback used if not provided)
+# OpenRouteService API Key (Free tier, no billing required)
+VITE_ORS_API_KEY="eyJvcm..."
+
+# Supabase Credentials (Optional)
 VITE_SUPABASE_URL="https://your-supabase-project.supabase.co"
 VITE_SUPABASE_ANON_KEY="your-anon-key"
 ```
@@ -127,8 +127,11 @@ VITE_SUPABASE_ANON_KEY="your-anon-key"
    ```bash
    npm run dev
    ```
-3. **Open Application**: Navigate to `http://localhost:3000` in your browser.
+3. **Build for Production**:
+   ```bash
+   npm run build
+   ```
 
 ---
 
-*Last Updated: September 15, 2026*
+*Last Updated: September 19, 2026*

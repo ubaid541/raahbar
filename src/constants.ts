@@ -102,3 +102,86 @@ export const MOCK_ROUTE: RouteDay[] = [
     sleepLocation: 'Serena Hotel Gilgit',
   },
 ];
+
+// ─── Critical Fuel Gap Knowledge Base ──────────────────────────────────────
+// Hand-verified long fuel-free stretches on major Northern Pakistan routes.
+// Injected into the AI prompt as a static safety net for fuel warnings.
+export const CRITICAL_FUEL_GAPS = [
+  {
+    route: 'KKH (N-35) — Chilas to Gilgit',
+    gapKm: 120,
+    lastFuelPoint: 'Chilas',
+    nextFuelPoint: 'Gilgit (Jutial)',
+    warning: 'Last reliable petrol station before Gilgit. Fill to the brim at Chilas. Carry at least 5L extra.',
+  },
+  {
+    route: 'Skardu Road (N-50) — Shatial to Skardu',
+    gapKm: 210,
+    lastFuelPoint: 'Shatial (KKH junction)',
+    nextFuelPoint: 'Skardu City',
+    warning: 'CRITICAL: 210km with no reliable fuel. Mandatory 5L+ jerry can. Do not leave Shatial without a full tank.',
+  },
+  {
+    route: 'Babusar Road — Naran to Chilas',
+    gapKm: 135,
+    lastFuelPoint: 'Naran (Batakundi petrol point)',
+    nextFuelPoint: 'Chilas',
+    warning: 'After Babusar Top, no fuel until Chilas. Fill at Naran/Batakundi before ascending the pass.',
+  },
+  {
+    route: 'KKH — Besham to Chilas',
+    gapKm: 165,
+    lastFuelPoint: 'Besham',
+    nextFuelPoint: 'Chilas',
+    warning: 'Long KKH stretch through Kohistan. Small roadside pumps are unreliable. Top up at Besham.',
+  },
+  {
+    route: 'Chitral Road (N-45) — Dir to Chitral',
+    gapKm: 140,
+    lastFuelPoint: 'Lowari Tunnel South (Dir)',
+    nextFuelPoint: 'Chitral City',
+    warning: 'After entering Lowari Tunnel, no confirmed fuel until Chitral. Fill completely at Dir.',
+  },
+  {
+    route: 'Khunjerab — Gulmit/Passu to Khunjerab Pass',
+    gapKm: 95,
+    lastFuelPoint: 'Gulmit / Passu',
+    nextFuelPoint: 'No fuel at Khunjerab — return to Passu',
+    warning: 'NO fuel at Khunjerab Pass border. Top up at Passu. Calculate return fuel too (round trip = 190km).',
+  },
+  {
+    route: 'Deosai Plains — Skardu to Astore',
+    gapKm: 130,
+    lastFuelPoint: 'Skardu',
+    nextFuelPoint: 'Astore / Rama',
+    warning: 'No fuel across Deosai plateau. Carry 5L+ minimum. Cold temps reduce engine efficiency.',
+  },
+] as const;
+
+// ─── Emergency Contacts & Infrastructure Knowledge Base ─────────────────────
+// Hospitals, rescue services, and mechanic hubs per region.
+// Injected into AI prompt so riders know their nearest emergency option.
+export const EMERGENCY_CONTACTS = [
+  // Gilgit-Baltistan
+  { region: 'Gilgit', type: 'hospital', name: 'DHQ Hospital Gilgit', contact: '05811-920290', note: '24/7 emergency. Main public hospital in GB.' },
+  { region: 'Gilgit', type: 'hospital', name: 'Aga Khan Health Service Gilgit', contact: '05811-457601', note: 'Best trauma care in GB. Recommended for serious injuries.' },
+  { region: 'Gilgit', type: 'rescue', name: 'Rescue 1122 GB', contact: '1122', note: 'Emergency rescue. Coverage improving in district HQs.' },
+  { region: 'Gilgit', type: 'mechanic', name: 'Gilgit Ittehad Chowk Mechanic Market', contact: null, note: 'Honda/Yamaha parts available. Multiple workshops near city centre.' },
+  { region: 'Skardu', type: 'hospital', name: 'DHQ Hospital Skardu', contact: '05751-920345', note: 'District HQ hospital. Basic trauma care.' },
+  { region: 'Skardu', type: 'mechanic', name: 'Skardu Kashmiri Bazaar', contact: null, note: 'Motorcycle parts and basic repair in main bazaar.' },
+  // KPK / Kaghan Valley
+  { region: 'Mansehra', type: 'hospital', name: 'DHQ Hospital Mansehra', contact: '0997-302020', note: 'Well-equipped gateway hospital for Kaghan Valley riders.' },
+  { region: 'Naran', type: 'rescue', name: 'Rescue 1122 Naran (Seasonal)', contact: '1122', note: 'Active June–September.' },
+  { region: 'Naran', type: 'mechanic', name: 'Naran Main Bazaar', contact: null, note: 'Puncture repair and minor fixes only. No major parts.' },
+  { region: 'Besham', type: 'mechanic', name: 'Besham KKH Chowk Workshops', contact: null, note: 'Tyre repair, chain, basic engine work available.' },
+  // Chilas / Diamer
+  { region: 'Chilas', type: 'hospital', name: 'DHQ Hospital Chilas', contact: '05813-450001', note: 'Basic emergency. Serious cases referred to Gilgit.' },
+  { region: 'Chilas', type: 'mechanic', name: 'Chilas Main Bazaar', contact: null, note: 'Motorcycle repair shops near bus stand.' },
+  // Chitral
+  { region: 'Chitral', type: 'hospital', name: 'DHQ Hospital Chitral', contact: '0943-412017', note: '24/7 emergency. Best option in upper Chitral.' },
+  { region: 'Chitral', type: 'rescue', name: 'Rescue 1122 Chitral', contact: '1122', note: 'Active rescue service.' },
+  // Rawalpindi / Islamabad
+  { region: 'Rawalpindi', type: 'hospital', name: 'Holy Family Hospital Rawalpindi', contact: '051-9290301', note: 'Best public trauma centre for Pindi/Isb area.' },
+  { region: 'Rawalpindi', type: 'mechanic', name: 'Committee Chowk Bike Market', contact: null, note: 'Largest motorcycle parts market in Rawalpindi. All brands.' },
+] as const;
+
