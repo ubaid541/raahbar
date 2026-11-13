@@ -1,0 +1,266 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 680" width="100%" height="100%" style="background:#090d16;font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,sans-serif;">
+  <defs>
+    <linearGradient id="bgGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e1726" />
+      <stop offset="100%" stop-color="#06090e" />
+    </linearGradient>
+    <linearGradient id="accentOrange" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff7a00" />
+      <stop offset="100%" stop-color="#ffaa00" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#151d2e" />
+      <stop offset="100%" stop-color="#0f1624" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#ff8c00" />
+    </marker>
+    <marker id="arrowCyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" />
+    </marker>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1100" height="680" fill="url(#bgGlow)"/>
+
+  <!-- Grid overlay -->
+  <g opacity="0.05" stroke="#ffffff" stroke-width="1">
+    <line x1="0" y1="68" x2="1100" y2="68"/>
+    <line x1="0" y1="136" x2="1100" y2="136"/>
+    <line x1="0" y1="204" x2="1100" y2="204"/>
+    <line x1="0" y1="272" x2="1100" y2="272"/>
+    <line x1="0" y1="340" x2="1100" y2="340"/>
+    <line x1="0" y1="408" x2="1100" y2="408"/>
+    <line x1="0" y1="476" x2="1100" y2="476"/>
+    <line x1="0" y1="544" x2="1100" y2="544"/>
+    <line x1="0" y1="612" x2="1100" y2="612"/>
+    <line x1="110" y1="0" x2="110" y2="680"/>
+    <line x1="220" y1="0" x2="220" y2="680"/>
+    <line x1="330" y1="0" x2="330" y2="680"/>
+    <line x1="440" y1="0" x2="440" y2="680"/>
+    <line x1="550" y1="0" x2="550" y2="680"/>
+    <line x1="660" y1="0" x2="660" y2="680"/>
+    <line x1="770" y1="0" x2="770" y2="680"/>
+    <line x1="880" y1="0" x2="880" y2="680"/>
+    <line x1="990" y1="0" x2="990" y2="680"/>
+  </g>
+
+  <!-- Header Section -->
+  <g transform="translate(50, 42)">
+    <rect x="0" y="0" width="124" height="22" rx="4" fill="#ff7a00" fill-opacity="0.15" stroke="#ff7a00" stroke-opacity="0.4"/>
+    <text x="62" y="15" fill="#ff9933" font-size="10" font-weight="700" letter-spacing="1.5" text-anchor="middle">SYSTEM ARCHITECTURE</text>
+    <text x="0" y="48" fill="#ffffff" font-size="24" font-weight="800" letter-spacing="0.5">RaahBar Multi-Source Grounding Pipeline</text>
+    <text x="0" y="70" fill="#94a3b8" font-size="13">Zero-Hallucination Motorcycle Expedition Engineering for High-Altitude Pakistan</text>
+  </g>
+
+  <!-- Phase 1: Inputs & Parameters -->
+  <g transform="translate(50, 150)" filter="url(#shadow)">
+    <rect width="210" height="470" rx="10" fill="url(#cardGrad)" stroke="#1e293b" stroke-width="1.5"/>
+    <path d="M 0 10 Q 0 0 10 0 L 200 0 Q 210 0 210 10 L 210 38 L 0 38 Z" fill="#1e293b"/>
+    <circle cx="18" cy="19" r="4" fill="#38bdf8"/>
+    <text x="32" y="23" fill="#f8fafc" font-size="12" font-weight="700">1. RIDER INPUTS</text>
+
+    <!-- Content Items -->
+    <g transform="translate(16, 56)">
+      <rect width="178" height="64" rx="6" fill="#0b111e" stroke="#334155" stroke-width="1"/>
+      <text x="12" y="20" fill="#ff9933" font-size="10" font-weight="700">ORIGIN &amp; DESTINATION</text>
+      <text x="12" y="38" fill="#e2e8f0" font-size="12" font-weight="600">Start: Islamabad</text>
+      <text x="12" y="53" fill="#e2e8f0" font-size="12" font-weight="600">End: Naran / Khunjerab</text>
+    </g>
+
+    <g transform="translate(16, 132)">
+      <rect width="178" height="64" rx="6" fill="#0b111e" stroke="#334155" stroke-width="1"/>
+      <text x="12" y="20" fill="#38bdf8" font-size="10" font-weight="700">BIKE PROFILE</text>
+      <text x="12" y="38" fill="#e2e8f0" font-size="12" font-weight="600">Displacement: 125cc–Adv</text>
+      <text x="12" y="53" fill="#94a3b8" font-size="11">Rookie / Inter / Veteran</text>
+    </g>
+
+    <g transform="translate(16, 208)">
+      <rect width="178" height="64" rx="6" fill="#0b111e" stroke="#334155" stroke-width="1"/>
+      <text x="12" y="20" fill="#a855f7" font-size="10" font-weight="700">SEASON &amp; DURATION</text>
+      <text x="12" y="38" fill="#e2e8f0" font-size="12" font-weight="600">Month: Jan – Dec</text>
+      <text x="12" y="53" fill="#94a3b8" font-size="11">Auto (Recommended) / 2-14d</text>
+    </g>
+
+    <g transform="translate(16, 284)">
+      <rect width="178" height="80" rx="6" fill="#0b111e" stroke="#334155" stroke-width="1"/>
+      <text x="12" y="20" fill="#10b981" font-size="10" font-weight="700">HYBRID RESOLVER</text>
+      <text x="12" y="38" fill="#e2e8f0" font-size="11" font-weight="600">45+ Verified Hubs Graph</text>
+      <text x="12" y="52" fill="#94a3b8" font-size="10">+ Nominatim Autocomplete</text>
+      <text x="12" y="66" fill="#64748b" font-size="9">(Excludes high-speed roads)</text>
+    </g>
+
+    <g transform="translate(16, 376)">
+      <rect width="178" height="74" rx="6" fill="#1a1c23" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="12" y="18" fill="#fbbf24" font-size="10" font-weight="700">RIDER SAFETY ENGINE</text>
+      <text x="12" y="34" fill="#cbd5e1" font-size="10">Paces daily km by bike cc</text>
+      <text x="12" y="48" fill="#cbd5e1" font-size="10">Prevents dangerous legs</text>
+      <text x="12" y="62" fill="#cbd5e1" font-size="10">Auto-routes winter passes</text>
+    </g>
+  </g>
+
+  <!-- Connect 1 -> 2 -->
+  <line x1="260" y1="360" x2="310" y2="360" stroke="#ff8c00" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Phase 2: Live Grounding APIs -->
+  <g transform="translate(315, 150)" filter="url(#shadow)">
+    <rect width="250" height="470" rx="10" fill="url(#cardGrad)" stroke="#1e293b" stroke-width="1.5"/>
+    <path d="M 0 10 Q 0 0 10 0 L 240 0 Q 250 0 250 10 L 250 38 L 0 38 Z" fill="#1e293b"/>
+    <circle cx="18" cy="19" r="4" fill="#ff7a00"/>
+    <text x="32" y="23" fill="#f8fafc" font-size="12" font-weight="700">2. LIVE GROUNDING APIS (PARALLEL)</text>
+
+    <!-- ORS Card -->
+    <g transform="translate(16, 52)">
+      <rect width="218" height="92" rx="6" fill="#0b111e" stroke="#334155" stroke-width="1"/>
+      <rect x="12" y="10" width="130" height="18" rx="3" fill="#0284c7" fill-opacity="0.2"/>
+      <text x="18" y="23" fill="#38bdf8" font-size="10" font-weight="700">OpenRouteService (ORS)</text>
+      <text x="12" y="45" fill="#f1f5f9" font-size="11" font-weight="600">GeoJSON Driving Direction</text>
+      <text x="12" y="60" fill="#94a3b8" font-size="10">• Real road km &amp; travel times</text>
+      <text x="12" y="74" fill="#94a3b8" font-size="10">• avoid_features: ["highways"]</text>
+      <text x="12" y="88" fill="#94a3b8" font-size="10">• Live road names (N-15, N-35, S-1)</text>
+    </g>
+
+    <!-- Open-Meteo Weather & Elev Card -->
+    <g transform="translate(16, 154)">
+      <rect width="218" height="92" rx="6" fill="#0b111e" stroke="#334155" stroke-width="1"/>
+      <rect x="12" y="10" width="124" height="18" rx="3" fill="#16a34a" fill-opacity="0.2"/>
+      <text x="18" y="23" fill="#4ade80" font-size="10" font-weight="700">Open-Meteo Suite</text>
+      <text x="12" y="45" fill="#f1f5f9" font-size="11" font-weight="600">Weather Forecast &amp; Elevation</text>
+      <text x="12" y="60" fill="#94a3b8" font-size="10">• 7-day temperature &amp; precipitation</text>
+      <text x="12" y="74" fill="#94a3b8" font-size="10">• Snow / heavy rainfall alerts</text>
+      <text x="12" y="88" fill="#94a3b8" font-size="10">• Multi-point elevation profile (m)</text>
+    </g>
+
+    <!-- OSM Overpass Card -->
+    <g transform="translate(16, 256)">
+      <rect width="218" height="100" rx="6" fill="#0b111e" stroke="#334155" stroke-width="1"/>
+      <rect x="12" y="10" width="136" height="18" rx="3" fill="#ea580c" fill-opacity="0.2"/>
+      <text x="18" y="23" fill="#fb923c" font-size="10" font-weight="700">OSM Overpass Engine</text>
+      <text x="12" y="45" fill="#f1f5f9" font-size="11" font-weight="600">Single-Batch Infrastructure</text>
+      <text x="12" y="60" fill="#94a3b8" font-size="10">• Real lakes, waterfalls &amp; viewpoints</text>
+      <text x="12" y="74" fill="#94a3b8" font-size="10">• High mountain passes &amp; altitudes</text>
+      <text x="12" y="88" fill="#94a3b8" font-size="10">• Fuel stations &amp; moto repair hubs</text>
+      <text x="12" y="99" fill="#94a3b8" font-size="9.5">• Dual mirror failover protection</text>
+    </g>
+
+    <!-- Pass Evaluator Rule Box -->
+    <g transform="translate(16, 366)">
+      <rect width="218" height="88" rx="6" fill="#1e1822" stroke="#d946ef" stroke-width="1"/>
+      <text x="12" y="20" fill="#f0abfc" font-size="10" font-weight="700">PASS STATUS EVALUATOR</text>
+      <text x="12" y="38" fill="#fdf4ff" font-size="11" font-weight="600">Seasonal Terrain Rules</text>
+      <text x="12" y="54" fill="#e879f9" font-size="10">• Babusar (4,173m) - Jun–Oct only</text>
+      <text x="12" y="68" fill="#e879f9" font-size="10">• Khunjerab (4,693m) - Apr–Nov only</text>
+      <text x="12" y="82" fill="#e879f9" font-size="10">• Auto-activates KKH bypass in winter</text>
+    </g>
+  </g>
+
+  <!-- Connect 2 -> 3 -->
+  <line x1="565" y1="360" x2="615" y2="360" stroke="#ff8c00" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Phase 3: AI Synthesis Layer -->
+  <g transform="translate(620, 150)" filter="url(#shadow)">
+    <rect width="210" height="470" rx="10" fill="url(#cardGrad)" stroke="#1e293b" stroke-width="1.5"/>
+    <path d="M 0 10 Q 0 0 10 0 L 200 0 Q 210 0 210 10 L 210 38 L 0 38 Z" fill="#1e293b"/>
+    <circle cx="18" cy="19" r="4" fill="#a855f7"/>
+    <text x="32" y="23" fill="#f8fafc" font-size="12" font-weight="700">3. AI ROADBOOK SYNTHESIS</text>
+
+    <!-- Prompt Injection -->
+    <g transform="translate(16, 52)">
+      <rect width="178" height="86" rx="6" fill="#0b111e" stroke="#334155" stroke-width="1"/>
+      <text x="12" y="20" fill="#38bdf8" font-size="10" font-weight="700">PROMPT INJECTION</text>
+      <text x="12" y="38" fill="#cbd5e1" font-size="10">Injects actual road names</text>
+      <text x="12" y="52" fill="#cbd5e1" font-size="10">Injects real distances</text>
+      <text x="12" y="66" fill="#cbd5e1" font-size="10">Injects Overpass lakes/POIs</text>
+      <text x="12" y="80" fill="#f43f5e" font-size="10" font-weight="700">"Zero Hallucination" Rules</text>
+    </g>
+
+    <!-- Official Free Gemini -->
+    <g transform="translate(16, 148)">
+      <rect width="178" height="126" rx="6" fill="#0b111e" stroke="#3b82f6" stroke-width="1.5"/>
+      <rect x="12" y="10" width="154" height="20" rx="3" fill="#2563eb" fill-opacity="0.2"/>
+      <text x="16" y="24" fill="#60a5fa" font-size="10" font-weight="700">GOOGLE GEMINI 3.5 LITE</text>
+      <text x="12" y="48" fill="#ffffff" font-size="12" font-weight="700">@google/genai SDK</text>
+      <text x="12" y="66" fill="#93c5fd" font-size="10">Free Official Model</text>
+      <text x="12" y="82" fill="#94a3b8" font-size="10">• High-speed token synthesis</text>
+      <text x="12" y="96" fill="#94a3b8" font-size="10">• 4-Pillar JSON schema output</text>
+      <text x="12" y="110" fill="#94a3b8" font-size="10">• Auto-fallback: 2.5-flash-lite</text>
+      <text x="12" y="122" fill="#94a3b8" font-size="9">• Zero search-tool quota block</text>
+    </g>
+
+    <!-- Fallback Synthesizer -->
+    <g transform="translate(16, 284)">
+      <rect width="178" height="96" rx="6" fill="#0b111e" stroke="#334155" stroke-width="1"/>
+      <text x="12" y="20" fill="#f59e0b" font-size="10" font-weight="700">RESILIENT MULTI-FALLBACK</text>
+      <text x="12" y="38" fill="#e2e8f0" font-size="10" font-weight="600">1. Gemini 3.5 Flash Lite</text>
+      <text x="12" y="52" fill="#cbd5e1" font-size="10">2. Gemini 2.5 Flash Lite/Flash</text>
+      <text x="12" y="66" fill="#cbd5e1" font-size="10">3. OpenRouter Free Router</text>
+      <text x="12" y="80" fill="#10b981" font-size="10" font-weight="600">4. Live Data Grounded Engine</text>
+      <text x="12" y="92" fill="#94a3b8" font-size="9">(100% offline mathematical)</text>
+    </g>
+
+    <!-- Normalizer -->
+    <g transform="translate(16, 390)">
+      <rect width="178" height="66" rx="6" fill="#0b111e" stroke="#334155" stroke-width="1"/>
+      <text x="12" y="18" fill="#10b981" font-size="10" font-weight="700">NORMALIZER &amp; AUDITOR</text>
+      <text x="12" y="34" fill="#cbd5e1" font-size="10">Calculates true total distance</text>
+      <text x="12" y="48" fill="#cbd5e1" font-size="10">Validates pass status keys</text>
+      <text x="12" y="62" fill="#cbd5e1" font-size="10">Populates missing pillars</text>
+    </g>
+  </g>
+
+  <!-- Connect 3 -> 4 -->
+  <line x1="830" y1="360" x2="875" y2="360" stroke="#ff8c00" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Phase 4: Delivered Outputs -->
+  <g transform="translate(880, 150)" filter="url(#shadow)">
+    <rect width="180" height="470" rx="10" fill="url(#cardGrad)" stroke="#1e293b" stroke-width="1.5"/>
+    <path d="M 0 10 Q 0 0 10 0 L 170 0 Q 180 0 180 10 L 180 38 L 0 38 Z" fill="#1e293b"/>
+    <circle cx="18" cy="19" r="4" fill="#10b981"/>
+    <text x="32" y="23" fill="#f8fafc" font-size="12" font-weight="700">4. BIKER OUTPUTS</text>
+
+    <!-- Pass Banner -->
+    <g transform="translate(14, 52)">
+      <rect width="152" height="74" rx="6" fill="#0b111e" stroke="#334155" stroke-width="1"/>
+      <text x="10" y="18" fill="#ef4444" font-size="9.5" font-weight="700">PASS STATUS BANNER</text>
+      <text x="10" y="34" fill="#f1f5f9" font-size="11" font-weight="600">Route Pass Matrix</text>
+      <text x="10" y="50" fill="#94a3b8" font-size="10">• Babusar Top: CLOSED</text>
+      <text x="10" y="64" fill="#94a3b8" font-size="10">• KKH N-35: OPEN</text>
+    </g>
+
+    <!-- 4-Pillar Day Cards -->
+    <g transform="translate(14, 136)">
+      <rect width="152" height="152" rx="6" fill="#0b111e" stroke="#38bdf8" stroke-width="1"/>
+      <text x="10" y="20" fill="#38bdf8" font-size="10" font-weight="700">4-PILLAR DAY CARDS</text>
+      <text x="10" y="38" fill="#f1f5f9" font-size="10.5" font-weight="600">Pillar 1: Highway</text>
+      <text x="10" y="52" fill="#94a3b8" font-size="9.5">• Exact corridor codes</text>
+      <text x="10" y="70" fill="#f1f5f9" font-size="10.5" font-weight="600">Pillar 2: POI Timeline</text>
+      <text x="10" y="84" fill="#94a3b8" font-size="9.5">• Lakes, passes &amp; stops</text>
+      <text x="10" y="102" fill="#f1f5f9" font-size="10.5" font-weight="600">Pillar 3: Road Surface</text>
+      <text x="10" y="116" fill="#94a3b8" font-size="9.5">• Asphalt, gravel, mud</text>
+      <text x="10" y="134" fill="#f1f5f9" font-size="10.5" font-weight="600">Pillar 4: Logistics</text>
+      <text x="10" y="148" fill="#94a3b8" font-size="9.5">• Fuel, mechanic, SCOM</text>
+    </g>
+
+    <!-- Rally Roadbook PDF -->
+    <g transform="translate(14, 298)">
+      <rect width="152" height="152" rx="6" fill="#0b111e" stroke="#ff7a00" stroke-width="1.5"/>
+      <rect x="8" y="8" width="136" height="20" rx="3" fill="#ff7a00" fill-opacity="0.2"/>
+      <text x="12" y="22" fill="#ff9933" font-size="9" font-weight="700">TACTICAL ROADBOOK</text>
+      <text x="10" y="44" fill="#ffffff" font-size="11" font-weight="700">Offline PDF Export</text>
+      <text x="10" y="60" fill="#fed7aa" font-size="9.5">• High-contrast black header</text>
+      <text x="10" y="74" fill="#fed7aa" font-size="9.5">• Sunlight readable on tank</text>
+      <text x="10" y="88" fill="#fed7aa" font-size="9.5">• Pass Status Matrix</text>
+      <text x="10" y="102" fill="#fed7aa" font-size="9.5">• 4-Pillar Daily Tables</text>
+      <text x="10" y="116" fill="#fed7aa" font-size="9.5">• Emergency Numbers (1122)</text>
+      <text x="10" y="130" fill="#fed7aa" font-size="9.5">• Gear &amp; NOC Checklist</text>
+      <text x="10" y="144" fill="#22c55e" font-size="9.5" font-weight="700">Zero Internet Required</text>
+    </g>
+  </g>
+
+  <!-- Footer Tag -->
+  <text x="550" y="650" fill="#64748b" font-size="11" text-anchor="middle">RaahBar v1 MVP • High-Altitude Motorcycle Tour Engineer • Built for Pakistan's Karakoram, Himalayas &amp; Hindukush</text>
+</svg>
+
