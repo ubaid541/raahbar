@@ -1,176 +1,366 @@
 import { CRITICAL_FUEL_GAPS, EMERGENCY_CONTACTS } from '../constants.ts';
 
+// ─── Seasonal Pass Rules (Safety Net + Live Search Verification) ────────────
+const SEASONAL_PASSES = [
+  {
+    name: 'Babusar Pass (N-15)',
+    altitudeM: 4173,
+    openMonths: ['May', 'June', 'July', 'August', 'September', 'October'],
+    closedCorridor: 'Use Karakoram Highway (N-35) via Besham, Dasu & Chilas year-round.',
+    keywords: ['naran', 'kaghan', 'babusar', 'chilas', 'gilgit', 'hunza', 'skardu', 'khunjerab', 'fairy meadows', 'astore'],
+  },
+  {
+    name: 'Khunjerab Pass (N-35 Border)',
+    altitudeM: 4693,
+    openMonths: ['April', 'May', 'June', 'July', 'August', 'September', 'October', 'November'],
+    closedCorridor: 'Accessible up to Sost / Passu in deep winter; border summit closes Dec–March.',
+    keywords: ['khunjerab', 'sost', 'passu', 'gojal', 'hunza'],
+  },
+  {
+    name: 'Deosai Plains (Skardu–Astore)',
+    altitudeM: 4115,
+    openMonths: ['June', 'July', 'August', 'September'],
+    closedCorridor: 'Use S-1 Jaglot–Skardu Highway via Indus Gorge when Deosai is snowbound.',
+    keywords: ['deosai', 'skardu', 'astore', 'minimarg', 'chillam', 'sheosar'],
+  },
+  {
+    name: 'Shandur Pass (Chitral–Ghizer)',
+    altitudeM: 3700,
+    openMonths: ['June', 'July', 'August', 'September', 'October'],
+    closedCorridor: 'Access Gilgit via N-35 KKH or Chitral via N-45 Lowari Tunnel in winter.',
+    keywords: ['shandur', 'chitral', 'mastuj', 'gupis', 'phander', 'ghizer'],
+  },
+  {
+    name: 'Lowari Tunnel (N-45 Dir–Chitral)',
+    altitudeM: 3118,
+    openMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    closedCorridor: 'Tunnel is open year-round (check icing after heavy blizzards); old top pass is closed.',
+    keywords: ['chitral', 'dir', 'lowari', 'kalash', 'booni', 'kumrat'],
+  },
+];
+
+/**
+ * Evaluate relevant mountain passes for a given route and travel month.
+ */
+export function evaluateRoutePasses(from, to, month, livePasses = []) {
+  const text = `${from} ${to}`.toLowerCase();
+  const matched = SEASONAL_PASSES.filter((p) =>
+    p.keywords.some((kw) => text.includes(kw))
+  );
+
+  // Merge any additional passes discovered dynamically via Overpass
+  for (const lp of livePasses || []) {
+    if (!lp?.name) continue;
+    const alreadyExists = matched.some((m) =>
+      m.name.toLowerCase().includes(lp.name.toLowerCase()) ||
+      lp.name.toLowerCase().includes(m.name.split(' ')[0].toLowerCase())
+    );
+    if (!alreadyExists) {
+      matched.push({
+        name: lp.name,
+        altitudeM: lp.elevationM || 3500,
+        openMonths: ['May', 'June', 'July', 'August', 'September', 'October'],
+        closedCorridor: 'Verify local police checkpoint before ascending in winter.',
+        keywords: [],
+      });
+    }
+  }
+
+  return matched.map((p) => {
+    const isOpen = p.openMonths.some((m) => m.toLowerCase() === (month || '').toLowerCase());
+    const isBorderline = ['May', 'October', 'November'].some(
+      (m) => m.toLowerCase() === (month || '').toLowerCase()
+    );
+    let status = isOpen ? 'OPEN' : 'CLOSED';
+    if (isOpen && isBorderline && p.altitudeM >= 3800) {
+      status = 'CAUTION';
+    }
+    return {
+      name: p.name,
+      altitudeM: p.altitudeM,
+      status,
+      reason: isOpen
+        ? isBorderline
+          ? `Open in ${month}, but early/late season frost & afternoon winds expected above ${p.altitudeM}m.`
+          : `Within normal open season (${p.openMonths[0]}–${p.openMonths[p.openMonths.length - 1]}).`
+        : `Snowbound / closed in ${month}. Seasonal window is ${p.openMonths[0]}–${p.openMonths[p.openMonths.length - 1]}.`,
+      alternativeCorridor: !isOpen ? p.closedCorridor : null,
+    };
+  });
+}
+
 // ─── System Prompt ───────────────────────────────────────────────────────────
-// Core domain knowledge — never hallucinate distances or locations.
-export function getSystemPrompt(days, start, end) {
-  return `You are RaahBar, a veteran biker and professional motorcycle expedition planner for Pakistan.
-You have deep knowledge of routes in Gilgit-Baltistan (GB), Khyber Pakhtunkhwa (KPK), and AJK.
+export function getSystemPrompt(daysLabel, start, end, month) {
+  const isAutoDays = String(daysLabel).toLowerCase() === 'auto';
+  const durationInstruction = isAutoDays
+    ? `Determine the ideal, realistic number of days (between 2 and 10 days) required to ride one-way from ${start} to ${end} AND explore its best nearby lakes, valleys, and viewpoints.`
+    : `Plan an exact ${daysLabel}-day one-way expedition from ${start} to ${end}. If ${daysLabel} days is longer than the direct transit ride requires, pace the transit comfortably with en-route scenic detours on the way and dedicate the remaining days to specific named side-valley excursions, lakes, and viewpoints around ${end}.`;
 
-You are planning a ONE-WAY ${days}-day scenic expedition from ${start} to ${end}.
+  return `You are RaahBar, a veteran Pakistani motorcycle expedition leader with encyclopedic knowledge of highways, mountain passes, towns, lakes, viewpoints, mechanics, and fuel logistics across Pakistan (KPK, Gilgit-Baltistan, AJK, Punjab).
 
-CRITICAL RULES — follow these absolutely:
-1. One-Way Journey: Plan the forward journey and local exploration only. Do NOT plan the return trip.
-2. Scenic Detours: The baseline route is often the fastest, but you should design a richer, scenic journey. If taking a beautiful detour makes the trip better, do it!
-3. Pacing: You decide the overnight stops dynamically based on the vehicle and rider experience. Do not blindly divide total distance by days. Use the middle days for travel/scenic stops. Use the final day to explore ultimate highlights around the destination.
-4. NEVER suggest motorways (M-1, M-2 etc.) — motorcycles are prohibited. Use scenic alternative roads.
-5. Provide realistic daily km distance and altitude estimates based on your domain knowledge.
-6. Check web_search for current pass status, road closures, and landslides before completing the itinerary.
+MISSION:
+${durationInstruction}
+Travel Month: ${month}.
 
-CRITICAL DOMAIN KNOWLEDGE:
-- Babusar Pass: Open May–October only. Altitude: 4,173m. Closed by snow Oct–May.
-- Shandur Pass: Open June–September. Altitude: 3,700m. Gravel/unpaved.
-- Deosai Plains: Open June–September. Altitude: 4,115m. Cold even in summer. No fuel.
-- Khunjerab Pass: Open April–November. Altitude: 4,693m. World's highest paved border crossing.
-- Lowari Tunnel: Year-round. Old pass is seasonal and restricted to locals.
-- SIM CARD: SCOM SIM is mandatory in GB. Jazz/Zong/Telenor do NOT work in most of GB.
-- BIKES: 150cc minimum for mountain passes. 125cc risks overheating and power loss above 3,500m.
-- ALTITUDE SICKNESS: Flag every day crossing above 3,500m. Recommend 1 acclimatization day if elevation gain > 1,500m in a single day.
-- NOC PERMITS: Naltar, Shimshal, Khunjerab (foreigners), Deosai, Astore (some zones), areas near Line of Control.
+CRITICAL RULES — FOLLOW STRICTLY:
+1. STRICTLY ONE-WAY EXPEDITION:
+   - Plan a ONE-WAY journey from ${start} to ${end} PLUS local excursions around ${end}. Do NOT plan a return trip back to ${start} on the final day!
+2. ZERO HALLUCINATIONS & SPECIFIC NAMES ONLY:
+   - NEVER write generic filler like "Viewpoint & Scenic Stops", "Exploring Surrounds", or "Local Chai Stop".
+   - Every single checkpoint, viewpoint, lake, waterfall, town, and pass MUST be a real, named geographical place along the route corridor OR around the destination (use the LIVE OVERPASS & ORS DATA injected in the user prompt plus your verified knowledge of that exact road).
+3. EN-ROUTE + DESTINATION VIEWPOINTS:
+   - Include scenic stops that come ON THE WAY while travelling toward ${end} (e.g., waterfalls, river confluences, side-valley detours, historic bridges, viewpoints), NOT just at the final destination.
+4. PASS CLOSURES & CORRIDOR ROUTING:
+   - Respect seasonal pass closures in ${month}! For example, if travelling in November–April and Babusar Pass (4,173m) is CLOSED, explicitly flag Babusar Pass as CLOSED in \`passStatuses\` and route via the open Karakoram Highway (N-35: Hazara/Abbottabad → Mansehra → Besham → Dasu → Chilas) if heading to GB, or restrict Naran excursions below snowline.
+   - ONLY include passes in \`passStatuses\` that lie on or directly adjacent to the route between ${start} and ${end} (use the passes provided in PASS STATUS EVALUATION; do not add unrelated passes from other regions like Lowari if routing to Naran).
+5. MOTORCYCLE BAN ON MOTORWAYS:
+   - Never route motorcycles on M-1, M-2, or M-15 motorways where bikes are prohibited. Always specify exact National/Provincial Highways (e.g., N-5 GT Road, N-35 KKH, N-15 Mansehra-Naran-Jalkhad Road, S-1 Skardu Road, N-45 Dir-Chitral Road, N-95 Swat Highway).
+6. 4-PILLAR DAY BREAKDOWN:
+   Every day in \`days[]\` MUST include all 4 biker pillars:
+   - Pillar 1 (\`highwayCorridor\`): Exact highway/road codes & names used that day.
+   - Pillar 2 (\`checkpoints\` & \`highlights\`): Ordered en-route towns, lakes, viewpoints, or passes with approximate km progression from that day's start.
+   - Pillar 3 (\`roadSurface\` & \`bikeAdvisory\`): Surface condition (% paved asphalt vs gravel/broken/water crossings) and specific handling advice for the rider's bike type.
+   - Pillar 4 (\`fuelStops\`, \`fuelWarning\`, \`mechanicHub\`, \`mobileSignal\`): Exact town names for fuel, nearest mechanic bazaar, and which mobile network works (e.g., "4G All Networks till Balakot; Telenor/SCOM in Naran" or "SCOM 4G only in GB").
 
-FUEL GAP KNOWLEDGE (hard facts — always apply these):
-${CRITICAL_FUEL_GAPS.map((g) => `- ${g.route} (${g.gapKm}km gap): ${g.warning}`).join('\n')}
+FUEL GAP KNOWLEDGE (Always enforce when route crosses these stretches):
+${CRITICAL_FUEL_GAPS.map((g) => `- ${g.route} (${g.gapKm}km gap, last: ${g.lastFuelPoint} -> next: ${g.nextFuelPoint}): ${g.warning}`).join('\n')}
 
-OUTPUT FORMAT — respond ONLY in this exact JSON structure, no extra text or markdown:
+OUTPUT FORMAT — Respond ONLY with valid JSON matching this exact structure (no markdown fences or extra text outside JSON):
 {
-  "tripTitle": "string",
+  "tripTitle": "string — e.g. Islamabad to Naran & Kaghan Alpine Expedition",
   "totalDays": number,
+  "recommendedDays": number,
+  "pacingAdvisory": "string or null — if user picked too many or too few days, explain how days were allocated (e.g. 'Direct ride is 265 km (2 days); Days 3–7 are dedicated to Lake Saif-ul-Malook, Shogran/Siri Paye, Lalazar & Kunhar Valley excursions.')",
   "totalDistanceKm": number,
   "totalDurationHrs": number,
   "startPoint": "string",
   "endPoint": "string",
-  "weatherSummary": "string — one sentence on current destination weather",
+  "primaryCorridor": "string — e.g. N-5 GT Road → N-35 KKH → N-15 Kaghan Highway",
+  "weatherSummary": "string — current destination weather & temperature for ${month}",
+  "bestMonths": "string — concise ideal window (max 4–6 words, e.g. 'May to October')",
+  "passStatuses": [
+    {
+      "name": "string — e.g. Babusar Pass (N-15)",
+      "altitudeM": number,
+      "status": "OPEN | CLOSED | CAUTION",
+      "reason": "string — why it is open/closed in ${month} + live condition",
+      "alternativeCorridor": "string or null — bypass route if closed"
+    }
+  ],
   "warnings": ["array of critical trip-level warnings"],
   "days": [
     {
       "day": number,
-      "title": "string — e.g. Day 1: Islamabad to Mansehra",
+      "title": "string — e.g. Day 1: Islamabad to Balakot & Shogran Detour",
       "distanceKm": number,
       "durationHrs": number,
-      "startLocation": "string — exact real town name",
-      "endLocation": "string — exact real town name",
+      "startLocation": "string — exact town name",
+      "endLocation": "string — exact town name",
+      "highwayCorridor": "string — e.g. N-5 → N-35 (Abbottabad–Mansehra) → N-15",
       "altitudeM": number,
       "altitudeLevel": "LOW | MID | HIGH | EXTREME",
-      "highlights": ["array of 3 real, specific sights or stops on this day's road"],
-      "fuelStops": ["array of fuel stop town names on this leg — use FUEL GAP KNOWLEDGE"],
+      "roadSurface": "string — e.g. 85% Paved Asphalt, 15% Steep Concrete Hairpins (Kewai–Shogran)",
+      "bikeAdvisory": "string — specific tip for rider's bike on this leg",
+      "checkpoints": [
+        {
+          "name": "string — specific town, viewpoint, lake or waterfall",
+          "kmFromStart": number,
+          "type": "town | viewpoint | lake | pass | fuel",
+          "note": "string — 1 short phrase on what to see/do here"
+        }
+      ],
+      "highlights": ["array of 3–4 specific named viewpoints/lakes/attractions on this day"],
+      "fuelStops": ["array of specific fuel station towns on this leg"],
       "fuelWarning": "string or null — specific fuel gap warning if applicable",
-      "sleepLocation": "string — area or guesthouse recommendation",
-      "warnings": ["altitude / pass timing / road condition flags for this day"],
-      "tips": "string — one concrete, practical tip for this specific day"
+      "mechanicHub": "string — nearest town bazaar with motorcycle mechanic & parts",
+      "mobileSignal": "string — e.g. 4G (Jazz/Zong/Telenor) in towns; SCOM/Telenor in upper valley",
+      "sleepLocation": "string — specific basecamp town & area recommendation",
+      "warnings": ["specific hazards on this day"],
+      "tips": "string — concrete rider tip for this day"
     }
   ],
-  "gearChecklist": ["array of 6–8 essential items specific to this trip"],
-  "permits": ["list of NOC/permits needed for this route"],
-  "bestMonths": "string — ideal months for this specific route",
-  "emergencyContacts": ["3–5 most relevant emergency contacts from the route's regions"]
+  "gearChecklist": ["array of 6–8 essential gear items tailored to bike & ${month} weather"],
+  "permits": ["list of NOC/park permits required"],
+  "emergencyContacts": ["3–5 specific hospital, Rescue 1122 & mechanic contacts for this route"]
 }`;
 }
 
 // ─── User Message Builder ────────────────────────────────────────────────────
 /**
- * Build the user-turn message injecting all real-world data.
- * The AI becomes a narrator/annotator, not an inventor.
- *
- * @param {object} tripParams   { from, to, days, month, bikeType, expLevel }
- * @param {object|null} routeData   From getRouteSegments()
- * @param {object|null} weatherData From getWeather()
- * @param {number[]|null} elevations  Array of altitudes per day endpoint
- * @param {Array|null} infrastructure  Per-day Overpass results
+ * Build the user-turn message injecting all live API data from ORS, Overpass, and Open-Meteo.
  */
-export function buildUserMessage(tripParams, routeData, weatherData, elevations, infrastructure) {
+export function buildUserMessage(
+  tripParams,
+  routeData,
+  weatherData,
+  elevations,
+  routePOIs,
+  evaluatedPasses
+) {
   const sections = [];
 
-  // ── Trip Parameters ──
+  // ── 1. Trip Parameters ──
   sections.push(`TRIP REQUEST:
-- From: ${tripParams.from}
-- To: ${tripParams.to}
-- Duration: ${tripParams.days} days
-- Travel month: ${tripParams.month}
-- Bike type: ${tripParams.bikeType}
-- Experience level: ${tripParams.expLevel}`);
+- Start City: ${tripParams.from}
+- Destination: ${tripParams.to}
+- Requested Duration: ${tripParams.days === 'Auto' ? 'Auto (Recommend optimal days)' : `${tripParams.days} Days`}
+- Travel Month: ${tripParams.month}
+- Motorcycle Type: ${tripParams.bikeType}
+- Rider Experience Level: ${tripParams.expLevel}`);
 
-  // ── Real Route Data ──
+  // ── 2. Live ORS Road & Distance Data ──
   if (routeData) {
-    let infraText = '';
+    const roadList =
+      routeData.stepSummaries && routeData.stepSummaries.length > 0
+        ? routeData.stepSummaries.map((s) => `${s.road} (${s.distanceKm} km)`).join(' → ')
+        : routeData.roadNames?.join(' → ') || 'National Highway Corridor';
+
+    let elevProfileText = '';
     if (elevations && elevations.length > 0) {
-       const maxElev = Math.max(...elevations);
-       infraText += `\n- Max route elevation sample: ~${Math.round(maxElev)}m`;
-    }
-    if (infrastructure && infrastructure.length > 0) {
-       const mappedFuel = Array.from(new Set(infrastructure.flatMap(i => i?.fuelStations || [])));
-       const mappedHos = Array.from(new Set(infrastructure.flatMap(i => i?.hospitals || [])));
-       infraText += `\n- Route infrastructure sampled (fuel): ${mappedFuel.length ? mappedFuel.join(', ') : 'scarce'}`;
-       infraText += `\n- Route infrastructure sampled (medical): ${mappedHos.length ? mappedHos.join(', ') : 'scarce'}`;
+      const maxElev = Math.max(...elevations);
+      const minElev = Math.min(...elevations);
+      elevProfileText = `\n- Live Elevation Profile along route points (m): ${elevations.join('m → ')}m (Min: ${minElev}m, Peak: ${maxElev}m)`;
     }
 
-    sections.push(`REAL ROUTE DATA (Baseline Direct Route):
-- Fastest highway distance: ${routeData.totalDistanceKm} km
-- Minimum continuous riding time: ${routeData.totalDurationHrs} hours${infraText}
-
-Note: The above distance is the minimum direct route. Since this is a scenic expedition, YOU determine the pacing and beautifully scenic detours, allocating distances across ${tripParams.days} days as you see fit. Overwrite pacing based on vehicle capability (e.g. 125cc vs Adventure).`);
-  } else {
-    sections.push(`REAL ROUTE DATA: Not available (use your domain knowledge but add disclaimer that distances are approximate).
-Note: Since this is a scenic expedition, YOU determine the pacing and beautifully scenic detours, allocating distances across ${tripParams.days} days as you see fit. Overwrite pacing based on vehicle capability.`);
+    sections.push(`LIVE OPENROUTESERVICE (ORS) ROAD DATA (Motorways Excluded):
+- Direct One-Way Highway Distance: ${routeData.totalDistanceKm} km
+- Baseline Continuous Riding Time: ${routeData.totalDurationHrs} hours
+- Detected Highway / Road Segments: ${roadList}${elevProfileText}`);
   }
 
-  // ── Live Weather ──
+  // ── 3. Live Overpass OSM Towns, Viewpoints, Lakes & Infrastructure ──
+  if (routePOIs) {
+    const towns = routePOIs.enRouteTowns?.length
+      ? routePOIs.enRouteTowns.join(' → ')
+      : 'Use verified highway towns along route';
+    const viewpoints = routePOIs.enRouteViewpoints?.length
+      ? routePOIs.enRouteViewpoints.map((v) => `${v.formatted} (~${v.distFromOriginKm}km from start)`).join(', ')
+      : 'Include real named viewpoints and lakes along route';
+    const destSpots = routePOIs.destAttractions?.length
+      ? routePOIs.destAttractions.join(', ')
+      : 'Include real named lakes, meadows, and viewpoints around destination';
+    const fuel = routePOIs.fuelStations?.length
+      ? routePOIs.fuelStations.join(', ')
+      : 'Major town PSO/Attock pumps';
+    const medical = routePOIs.hospitals?.length
+      ? routePOIs.hospitals.join(', ')
+      : 'District HQ Hospitals along route';
+    const mechanics = routePOIs.mechanics?.length
+      ? routePOIs.mechanics.join(', ')
+      : 'Main town bazaar motorcycle workshops';
+
+    sections.push(`LIVE OPENSTREETMAP (OVERPASS) DISCOVERED PLACES ALONG ROUTE:
+- En-Route Intermediate Towns (ordered): ${towns}
+- Live Discovered En-Route Viewpoints, Lakes & Waterfalls: ${viewpoints}
+- Live Discovered Destination-Area Lakes & Attractions: ${destSpots}
+- Mapped Fuel Stations along route: ${fuel}
+- Mapped Hospitals / Clinics along route: ${medical}
+- Mapped Motorcycle Mechanics: ${mechanics}`);
+  }
+
+  // ── 4. Evaluated Pass Statuses ──
+  if (evaluatedPasses && evaluatedPasses.length > 0) {
+    sections.push(`PASS STATUS EVALUATION FOR ${tripParams.month.toUpperCase()}:
+${evaluatedPasses
+  .map(
+    (p) =>
+      `- ${p.name} (${p.altitudeM}m): ${p.status} — ${p.reason}${
+        p.alternativeCorridor ? ` | Bypass: ${p.alternativeCorridor}` : ''
+      }`
+  )
+  .join('\n')}`);
+  }
+
+  // ── 5. Live Open-Meteo Weather ──
   if (weatherData) {
-    sections.push(`LIVE WEATHER AT DESTINATION (current):
-- Temperature: ${weatherData.tempC}°C
+    sections.push(`LIVE OPEN-METEO WEATHER AT DESTINATION:
+- Current Temp: ${weatherData.tempC}°C (Daily Range: ${weatherData.minTempC}°C to ${weatherData.maxTempC}°C)
 - Condition: ${weatherData.condition}
-- Wind: ${weatherData.windKmh} km/h
-- Precipitation: ${weatherData.precipMm}mm
-${weatherData.isAlert ? `⚠️ WEATHER ALERT: ${weatherData.alertText}` : '- No active weather alerts.'}`);
-  } else {
-    sections.push(`LIVE WEATHER: Data unavailable. Note seasonal conditions typical for ${tripParams.month} in the region.`);
+- Wind: ${weatherData.windKmh} km/h | Precipitation: ${weatherData.precipMm} mm
+${weatherData.isAlert ? `- ⚠️ ACTIVE ALERT: ${weatherData.alertText}` : '- No immediate severe precipitation alert.'}`);
   }
 
-  // ── Emergency Infrastructure ──
+  // ── 6. Regional Emergency Contacts ──
   const relevantContacts = getRelevantEmergencyContacts(tripParams.from, tripParams.to);
   if (relevantContacts.length > 0) {
-    sections.push(`KEY EMERGENCY CONTACTS FOR THIS ROUTE:
-${relevantContacts.map((c) => `- ${c.region} ${c.type}: ${c.name}${c.contact ? ` (${c.contact})` : ''} — ${c.note}`).join('\n')}`);
+    sections.push(`VERIFIED REGIONAL EMERGENCY & MECHANIC CONTACTS:
+${relevantContacts
+  .map(
+    (c) =>
+      `- [${c.region} ${c.type.toUpperCase()}] ${c.name}${
+        c.contact ? ` (${c.contact})` : ''
+      } — ${c.note}`
+  )
+  .join('\n')}`);
   }
 
-  // ── Final instruction ──
-  sections.push(`INSTRUCTIONS:
-1. Use web_search to check current road conditions, pass status, and any active closures/landslides for this route in ${tripParams.month}.
-2. Design the best scenic route. The REAL ROUTE DATA is just the baseline minimum direct route. You are encouraged to take scenic detours!
-3. Adapt to Vehicle & Experience: For a 125cc bike, restrict aggressive single-day highland climbs and suggest cooling stops. For an Adventure (500cc+) bike, confidently route through steeper terrain. For a Rookie, prioritize paved roads and shorter saddle hours. For a Veteran, include off-road recommendations and longer riding hours.
-4. Populate highlights with REAL, SPECIFIC places along the actual road on that day (e.g. "Attock Bridge", "Lulusar Lake", "Rakaposhi viewpoint").
-5. Apply fuel gap warnings wherever relevant from FUEL GAP KNOWLEDGE and infrastructure data.
-6. Flag altitude warnings for any day crossing above 3,500m, especially for smaller bikes like 125cc.
-7. Respond ONLY with the JSON structure. No extra text.`);
+  // ── 7. Final Synthesis Instructions ──
+  sections.push(`FINAL SYNTHESIS INSTRUCTIONS:
+1. Ground your entire itinerary in the LIVE ORS distance (${routeData?.totalDistanceKm ? `${routeData.totalDistanceKm} km baseline one-way` : 'real road distance'}) and the LIVE OVERPASS towns, viewpoints, and lakes listed above.
+2. Every day MUST have 3 to 5 specific, real entries in \`checkpoints[]\` showing the rider's progression (Towns, Viewpoints, Lakes, Waterfalls, Fuel stops, or Passes) with realistic \`kmFromStart\` numbers for that day.
+3. If the user requested more days than needed for the direct one-way transit (e.g. 7 days for a ~265 km route like Islamabad to Naran), use Days 1–2 for a scenic transit (including en-route detours like Abbottabad, Balakot, Kewai Waterfall, Shogran/Siri Paye) and dedicate Days 3+ to specific named day-rides/excursions around the destination (e.g. Lake Saif-ul-Malook, Batakundi & Lalazar Plateau, Jalkhad & Lulusar Lake / Babusar Top if open, or lower Kunhar River / Kaghan valleys if winter snow blocks high passes). Sum \`totalDistanceKm\` as the sum of all daily distances (transit + daily excursions).
+4. Tailor \`bikeAdvisory\` to ${tripParams.bikeType} (${tripParams.expLevel} rider) — e.g. for 125cc/150cc warn about clutch fade, carburetor power loss above 3,000m, and low-gear climbs.
+5. Return ONLY the raw JSON object.`);
 
   return sections.join('\n\n');
 }
 
 // ─── Helper: Filter emergency contacts relevant to this route ────────────────
-function getRelevantEmergencyContacts(from, to) {
+export function getRelevantEmergencyContacts(from, to) {
   const routeText = `${from} ${to}`.toLowerCase();
 
-  // Determine which regions are likely on this route
   const relevantRegions = [];
-  if (routeText.includes('gilgit') || routeText.includes('hunza') || routeText.includes('khunjerab') || routeText.includes('passu') || routeText.includes('karimabad')) {
+  if (
+    routeText.includes('gilgit') ||
+    routeText.includes('hunza') ||
+    routeText.includes('khunjerab') ||
+    routeText.includes('passu') ||
+    routeText.includes('karimabad') ||
+    routeText.includes('nagar') ||
+    routeText.includes('fairy')
+  ) {
     relevantRegions.push('Gilgit');
   }
-  if (routeText.includes('skardu') || routeText.includes('deosai') || routeText.includes('shigar')) {
+  if (
+    routeText.includes('skardu') ||
+    routeText.includes('deosai') ||
+    routeText.includes('shigar') ||
+    routeText.includes('khaplu')
+  ) {
     relevantRegions.push('Skardu');
   }
-  if (routeText.includes('naran') || routeText.includes('kaghan') || routeText.includes('babusar')) {
+  if (
+    routeText.includes('naran') ||
+    routeText.includes('kaghan') ||
+    routeText.includes('babusar') ||
+    routeText.includes('shogran') ||
+    routeText.includes('balakot')
+  ) {
     relevantRegions.push('Naran', 'Mansehra');
   }
-  if (routeText.includes('chilas') || routeText.includes('diamer')) {
+  if (routeText.includes('chilas') || routeText.includes('diamer') || routeText.includes('astore')) {
     relevantRegions.push('Chilas');
   }
-  if (routeText.includes('chitral') || routeText.includes('shandur') || routeText.includes('lowari')) {
+  if (
+    routeText.includes('chitral') ||
+    routeText.includes('shandur') ||
+    routeText.includes('lowari') ||
+    routeText.includes('kalash') ||
+    routeText.includes('kumrat')
+  ) {
     relevantRegions.push('Chitral');
   }
-  if (routeText.includes('islamabad') || routeText.includes('rawalpindi') || routeText.includes('pindi')) {
+  if (
+    routeText.includes('islamabad') ||
+    routeText.includes('rawalpindi') ||
+    routeText.includes('pindi')
+  ) {
     relevantRegions.push('Rawalpindi');
   }
 
-  // Always add Besham (KKH midpoint used by most routes)
-  if (!relevantRegions.includes('Besham')) relevantRegions.push('Besham');
+  if (!relevantRegions.includes('Mansehra') && !relevantRegions.includes('Besham')) {
+    relevantRegions.push('Mansehra', 'Besham');
+  }
 
   return EMERGENCY_CONTACTS.filter((c) => relevantRegions.includes(c.region));
 }

@@ -1,8 +1,32 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Route as RouteIcon, Bed, RefreshCw } from 'lucide-react';
+import { Route as RouteIcon, FileCheck2, RefreshCw } from 'lucide-react';
 
 const HERO_IMG = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80&auto=format&fit=crop';
+
+const LEGENDARY_ROUTES = [
+  {
+    title: 'KKH to Khunjerab',
+    desc: "The iconic Karakoram Highway finishing at the world's highest paved border crossing via Hunza & Attabad Lake.",
+    days: '7–10 Days',
+    difficulty: 'Intermediate',
+    query: 'from=Islamabad&to=Khunjerab%20Pass&days=7&bike=Adventure&exp=50',
+  },
+  {
+    title: 'Naran to Skardu',
+    desc: "Across Babusar Pass (4,173m) into the Indus Gorge and up to Skardu's alpine lakes & high desert.",
+    days: '5–7 Days',
+    difficulty: 'Veteran',
+    query: 'from=Naran&to=Skardu&days=5&bike=250cc&exp=80',
+  },
+  {
+    title: 'Naran & Kaghan Explorer',
+    desc: 'Ride along the Kunhar River through Balakot, Kewai Waterfall, Shogran, and Lake Saif-ul-Malook.',
+    days: '3–5 Days',
+    difficulty: 'Rookie',
+    query: 'from=Islamabad&to=Naran&days=5&bike=150cc&exp=25',
+  },
+];
 
 export default function Home() {
   return (
@@ -29,7 +53,7 @@ export default function Home() {
             THE NORTH <br /><span className="italic text-primary">AWAITS.</span>
           </h1>
           <p className="text-xl text-on-surface-variant max-w-2xl mx-auto font-medium">
-            Real-time road logistics, curated basecamps, and AI-engineered routes for the world's most challenging terrain.
+            Live road logistics, en-route viewpoints, pass status advisories, and offline PDF biker roadbooks for Pakistan&apos;s highest mountain highways.
           </p>
           <div className="flex flex-wrap justify-center gap-4 pt-8">
             <Link
@@ -46,18 +70,18 @@ export default function Home() {
       <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="p-8 rounded-3xl bg-surface border border-white/5 space-y-4">
           <RouteIcon className="text-secondary w-10 h-10" />
-          <h3 className="font-headline text-2xl font-bold">Custom AI Routes</h3>
-          <p className="text-on-surface-variant">Day-by-day expedition routing tailored to your motorcycle type, travel duration, and season.</p>
+          <h3 className="font-headline text-2xl font-bold">4-Pillar Biker Routing</h3>
+          <p className="text-on-surface-variant">Exact highway codes, ordered en-route lakes & viewpoints, road surface breakdowns, and fuel/SCOM logistics per day.</p>
         </div>
         <div className="p-8 rounded-3xl bg-surface border border-white/5 space-y-4">
           <RefreshCw className="text-tertiary w-10 h-10" />
-          <h3 className="font-headline text-2xl font-bold">Altitude & Pass Alerts</h3>
-          <p className="text-on-surface-variant">Automatic altitude hypoxia warnings and pass timing guidelines embedded into every day's route.</p>
+          <h3 className="font-headline text-2xl font-bold">Live Pass & Corridor Status</h3>
+          <p className="text-on-surface-variant">Real-time and seasonal pass status checks (Babusar, Khunjerab, Deosai, Lowari) with automatic winter corridor routing.</p>
         </div>
         <div className="p-8 rounded-3xl bg-surface border border-white/5 space-y-4">
-          <RouteIcon className="text-primary w-10 h-10" />
-          <h3 className="font-headline text-2xl font-bold">Gear & Permit Checklist</h3>
-          <p className="text-on-surface-variant">Comprehensive gear lists and travel permit requirement breakdown for high-altitude passes.</p>
+          <FileCheck2 className="text-primary w-10 h-10" />
+          <h3 className="font-headline text-2xl font-bold">Offline PDF Rally Roadbook</h3>
+          <p className="text-on-surface-variant">Download a high-contrast Tactical Rally Roadbook PDF to your phone for zero-signal mountain zones.</p>
         </div>
       </section>
 
@@ -70,22 +94,20 @@ export default function Home() {
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { title: 'KKH to Khunjerab', desc: 'The iconic Karakoram Highway finishing at the world\'s highest paved border crossing.', days: '7–10 Days', difficulty: 'Intermediate' },
-            { title: 'Naran to Skardu', desc: 'Via Babusar Pass into the Indus valley and across to Skardu\'s desert landscape.', days: '5–7 Days', difficulty: 'Veteran' },
-            { title: 'Fairy Meadows Loop', desc: 'Ride to the base of Nanga Parbat and back through the Kaghan valley.', days: '4–6 Days', difficulty: 'Rookie' },
-          ].map((route) => (
-            <div key={route.title} className="group bg-surface rounded-2xl overflow-hidden border border-white/5 hover:border-primary/20 transition-all">
-              <div className="p-6 space-y-3">
-                <h3 className="font-headline text-xl font-bold">{route.title}</h3>
-                <p className="text-on-surface-variant text-sm">{route.desc}</p>
-                <div className="flex gap-2 pt-2">
-                  <span className="font-label text-[10px] uppercase tracking-wider bg-surface-high px-3 py-1 rounded-full">{route.days}</span>
-                  <span className="font-label text-[10px] uppercase tracking-wider bg-primary/10 text-primary px-3 py-1 rounded-full">{route.difficulty}</span>
+          {LEGENDARY_ROUTES.map((route) => (
+            <div key={route.title} className="group bg-surface rounded-2xl overflow-hidden border border-white/5 hover:border-primary/20 transition-all flex flex-col justify-between">
+              <div className="p-6 space-y-3 flex-grow flex flex-col justify-between">
+                <div className="space-y-3">
+                  <h3 className="font-headline text-xl font-bold">{route.title}</h3>
+                  <p className="text-on-surface-variant text-sm">{route.desc}</p>
+                  <div className="flex gap-2 pt-2">
+                    <span className="font-label text-[10px] uppercase tracking-wider bg-surface-high px-3 py-1 rounded-full">{route.days}</span>
+                    <span className="font-label text-[10px] uppercase tracking-wider bg-primary/10 text-primary px-3 py-1 rounded-full">{route.difficulty}</span>
+                  </div>
                 </div>
                 <Link
-                  to="/planner"
-                  className="w-full mt-4 py-3 rounded-xl font-label font-bold text-xs uppercase tracking-widest border border-white/10 hover:bg-primary hover:text-background hover:border-transparent transition-all min-h-[48px] flex items-center justify-center"
+                  to={`/planner?${route.query}`}
+                  className="w-full mt-6 py-3 rounded-xl font-label font-bold text-xs uppercase tracking-widest border border-white/10 hover:bg-primary hover:text-background hover:border-transparent transition-all min-h-[48px] flex items-center justify-center"
                 >
                   Plan This Route
                 </Link>

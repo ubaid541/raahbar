@@ -1,16 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { AlertTriangle, RefreshCw, Route } from 'lucide-react';
 import TripForm from '../components/TripForm.jsx';
 import ItineraryOutput from '../components/ItineraryOutput.jsx';
 
 const PLANNER_HERO = 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80&auto=format&fit=crop';
+const STORAGE_KEY = 'raahbar_active_itinerary_v1';
 
 export default function Planner() {
-  const [itinerary, setItinerary] = useState(null);
+  const [itinerary, setItinerary] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [progressStatus, setProgressStatus] = useState('RaahBar is planning your route...');
+
+  useEffect(() => {
+    if (itinerary) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(itinerary));
+      } catch {
+        // Ignore quota errors
+      }
+    }
+  }, [itinerary]);
 
   return (
     <motion.div
@@ -31,10 +49,14 @@ export default function Planner() {
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
         </div>
         <div className="relative z-10 space-y-2">
-          <span className="font-label text-xs font-black uppercase tracking-[0.3em] text-secondary">Route Planning</span>
-          <h2 className="font-headline text-4xl md:text-6xl font-bold tracking-tighter">Mission Control.</h2>
+          <span className="font-label text-xs font-black uppercase tracking-[0.3em] text-secondary">
+            Route Planning
+          </span>
+          <h2 className="font-headline text-4xl md:text-6xl font-bold tracking-tighter">
+            Mission Control.
+          </h2>
           <p className="max-w-xl text-on-surface-variant font-medium">
-            Engineer your journey through the high passes of the Karakoram. Real-time logistics for the serious rider.
+            Engineer your journey through the high passes of the Karakoram. Live highway corridors, specific en-route viewpoints, and offline PDF rally roadbooks.
           </p>
         </div>
       </section>
@@ -74,12 +96,14 @@ export default function Planner() {
                 <RefreshCw className="w-8 h-8 text-secondary animate-spin absolute -bottom-2 -right-2" />
               </div>
               <div className="text-center space-y-3 max-w-md">
-                <p className="font-headline text-xl font-bold text-primary animate-fade-in">{progressStatus}</p>
+                <p className="font-headline text-xl font-bold text-primary animate-fade-in">
+                  {progressStatus}
+                </p>
                 <div className="w-full bg-surface-highest h-1.5 rounded-full overflow-hidden">
                   <div className="bg-gradient-to-r from-primary to-secondary h-full animate-pulse w-3/4 rounded-full"></div>
                 </div>
                 <p className="text-on-surface-variant font-label text-xs uppercase tracking-widest">
-                  Live data: Nominatim · OpenRouteService · Open-Meteo · Overpass
+                  Live Data: Nominatim · ORS GeoJSON · Open-Meteo · Overpass · Gemini 3.5 Flash-Lite
                 </p>
               </div>
             </div>
@@ -90,16 +114,18 @@ export default function Planner() {
             <div className="flex flex-col items-center justify-center py-24 gap-6 border border-dashed border-white/10 rounded-3xl">
               <Route className="w-16 h-16 text-on-surface-variant opacity-30" />
               <div className="text-center space-y-2">
-                <p className="font-headline text-2xl font-bold text-on-surface-variant opacity-50">Your itinerary will appear here</p>
-                <p className="text-on-surface-variant opacity-40 font-label text-sm uppercase tracking-widest">Fill in the form and hit Generate</p>
+                <p className="font-headline text-2xl font-bold text-on-surface-variant opacity-50">
+                  Your 4-pillar roadbook will appear here
+                </p>
+                <p className="text-on-surface-variant opacity-40 font-label text-sm uppercase tracking-widest">
+                  Select your start city, destination &amp; bike profile, then hit Generate
+                </p>
               </div>
             </div>
           )}
 
           {/* Itinerary Output */}
-          {!loading && itinerary && (
-            <ItineraryOutput itinerary={itinerary} />
-          )}
+          {!loading && itinerary && <ItineraryOutput itinerary={itinerary} />}
         </section>
       </div>
     </motion.div>
