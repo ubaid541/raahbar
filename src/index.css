@@ -45,3 +45,52 @@
   clip-path: polygon(0 0, 100% 5%, 100% 100%, 0 95%);
 }
 
+
+/* ===== Trip Planner redesign (scoped to .trip-ui) ===== */
+.trip-ui {
+  --tu-bg: var(--color-surface);
+  --tu-card: var(--color-surface-high);
+  --tu-card-2: var(--color-surface-highest);
+  --tu-line: rgba(255, 255, 255, 0.08);
+  --tu-text: var(--color-on-surface);
+  --tu-text-2: var(--color-on-surface-variant);
+  --tu-brand: var(--color-primary);
+  --tu-danger: var(--color-error);
+  --tu-danger-bg: rgba(255, 113, 108, 0.10);
+  --tu-danger-line: rgba(255, 113, 108, 0.35);
+  background: var(--tu-bg);
+  border: 1px solid var(--tu-line);
+  color: var(--tu-text);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+  border-radius: 24px;
+  padding: 24px;
+}
+.trip-ui * { font-weight: inherit; }
+.trip-ui .tu-title { font-size: 22px; line-height: 1.25; font-weight: 600; letter-spacing: -0.01em; }
+.trip-ui .tu-strong { font-weight: 600; color: var(--tu-text); }
+.trip-ui .tu-body { font-size: 14px; color: var(--tu-text); }
+.trip-ui .tu-sub { font-size: 13px; color: var(--tu-text-2); }
+.trip-ui .tu-label { font-size: 12px; font-weight: 500; color: var(--tu-text-2); letter-spacing: 0; text-transform: none; }
+.trip-ui .tu-card { background: var(--tu-card); border: 1px solid var(--tu-line); border-radius: 16px; padding: 16px; }
+.trip-ui .tu-section { margin-top: 24px; }
+.trip-ui .tu-danger { color: var(--tu-danger); }
+.trip-ui .tu-btn-icon {
+  width: 40px; height: 40px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--tu-card-2); border: 1px solid var(--tu-line); color: var(--tu-text); cursor: pointer;
+}
+.trip-ui .tu-btn-icon:hover { border-color: var(--tu-brand); color: var(--tu-brand); }
+.trip-ui .tu-btn-primary {
+  background: var(--tu-brand); color: #1a1008; font-weight: 600; font-size: 14px;
+  padding: 10px 18px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+}
+.trip-ui .tu-btn-primary:hover { filter: brightness(1.08); }
+.trip-ui .tu-btn-ghost {
+  background: transparent; color: var(--tu-text); border: 1px solid var(--tu-line); font-size: 14px;
+  padding: 10px 18px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+}
+.trip-ui .tu-btn-ghost:disabled { opacity: 0.4; cursor: default; }
+.trip-ui :focus-visible { outline: 2px solid var(--tu-brand); outline-offset: 2px; }
+.trip-ui .tu-scroll { scrollbar-width: none; }
+.trip-ui .tu-scroll::-webkit-scrollbar { display: none; }

@@ -94,3 +94,14 @@ VITE_ORS_API_KEY="eyJvcm..."
 # Optional OpenRouter Free Fallback Key
 VITE_OPENROUTER_API_KEY="sk-or-v1-..."
 ```
+
+---
+
+## 5. Trip Planner UI/UX Redesign (Post-MVP)
+
+Rider-first itinerary screen: header + Share menu, single alert strip (pass status + warnings), day tabs, one-day hero card with vertical timeline, overnight block, Next-day footer, collapsible trip essentials. Dark theme kept; orange = brand/CTA only, red = danger only.
+
+- New components: `ShareMenu.jsx`, `AlertStrip.jsx`, `DayTabs.jsx`; rewritten: `ItineraryOutput.jsx`, `ItineraryCard.jsx`; scoped styles (`.trip-ui`) appended to `index.css`.
+- Data schema, `Planner.jsx`, `pdfRoadbook.js` and the AI/routing pipeline are unchanged (FR-4/5/6/7 preserved).
+- Backups of the previous UI: `ItineraryOutput.bak.jsx`, `ItineraryCard.bak.jsx`.
+- Task-by-task status: `UI_REDESIGN_TRACKER.md`.

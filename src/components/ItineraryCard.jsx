@@ -1,258 +1,381 @@
-import {
-  AlertTriangle,
-  CheckCircle2,
-  MapPin,
-  ExternalLink,
-  Fuel,
-  Mountain,
-  Route,
-  Wrench,
-  Wifi,
-  Compass,
-} from 'lucide-react';
+import { useState } from 'react';
+import { Fuel, Wrench, AlertTriangle, ChevronDown, MapPin, Phone } from 'lucide-react';
+import { EMERGENCY_CONTACTS } from '../constants.ts';
 
-export default function ItineraryCard({ day }) {
+/** One-line warning that expands on tap. */
+function WarningRow({ text }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <li>
+      <button
+        type="button"
+        className="w-full flex items-start gap-2 text-left py-1.5 cursor-pointer"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <AlertTriangle
+          className="w-4 h-4 mt-0.5 shrink-0"
+          style={{ color: 'var(--tu-danger)' }}
+        />
+        <span className={`block flex-1 min-w-0 text-[14px] text-[var(--tu-text)] ${open ? '' : 'truncate'}`}>
+          {text}
+        </span>
+        <ChevronDown
+          className={`w-4 h-4 mt-0.5 shrink-0 text-[var(--tu-text-2)] transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+    </li>
+  );
+}
+
+const HAZARD_RE =
+  /closed|danger|landslide|rockfall|hazard|avalanche|washed|no fuel|extreme|do not|unsafe|snow|ice\b/i;
+
+const REGION_KEYWORDS = {
+  Rawalpindi: ['rawalpindi', 'pindi', 'islamabad', 'taxila', 'hasan abdal', 'murree'],
+  Mansehra: ['mansehra', 'abbottabad', 'hazara', 'balakot', 'haripur'],
+  Naran: ['naran', 'kaghan', 'babusar', 'shogran', 'kewai', 'batakundi', 'jalkhad', 'lulusar', 'saif-ul-malook'],
+  Besham: ['besham', 'thakot', 'dasu', 'kohistan', 'shatial'],
+  Chilas: ['chilas', 'diamer', 'jaglot', 'fairy meadows', 'raikot', 'astore', 'nanga parbat'],
+  Gilgit: ['gilgit', 'hunza', 'karimabad', 'passu', 'sost', 'khunjerab', 'nagar', 'rakaposhi', 'ghulmet', 'attabad', 'ghizer', 'phander', 'gupis'],
+  Skardu: ['skardu', 'deosai', 'shigar', 'khaplu', 'kachura', 'satpara', 'shangrila', 'indus gorge'],
+  Chitral: ['chitral', 'shandur', 'lowari', 'dir', 'kalash', 'kumrat', 'mastuj', 'booni'],
+};
+
+const STOP_WORDS = new Set([
+  'city', 'town', 'road', 'main', 'pass', 'lake', 'valley', 'market',
+  'bazaar', 'bridge', 'basecamp', 'pakistan', 'viewpoint', 'corridor',
+]);
+
+/** Extract concise night temperature (or altitude fallback) for the 3-stat meta line. */
+function getNightStat(weather, altitudeM) {
+  if (weather) {
+    const lowMatch = String(weather).match(/low\s*(-?\d+(?:\.\d+)?)\s*°?\s*c/i);
+    if (lowMatch) return `${lowMatch[1]}°C night`;
+    const nightMatch = String(weather).match(/(-?\d+(?:\.\d+)?)\s*°?\s*c\s*(?:at\s*)?night/i);
+    if (nightMatch) return `${nightMatch[1]}°C night`;
+    const tempMatch = String(weather).match(/(-?\d+(?:\.\d+)?)\s*°\s*c/i);
+    if (tempMatch) return `${tempMatch[1]}°C night`;
+  }
+  if (altitudeM != null) {
+    return `${Number(altitudeM).toLocaleString()} m peak`;
+  }
+  return null;
+}
+
+/** Extract clickable phone number from a contact line when available. */
+function extractPhone(text) {
+  const s = String(text || '');
+  const telTagged = s.match(/(?:Tel:|Dial)\s*(\+?\d[\d\s-]{2,}\d)/i);
+  if (telTagged) return telTagged[1].trim();
+  const stdPhone = s.match(/(\+?\d{2,5}[-\s]\d{5,8}|\b1122\b|\b130\b)/);
+  return stdPhone ? stdPhone[1].trim() : null;
+}
+
+/** Filter trip emergency contacts to the regions/stops covered by this day's route. */
+function filterContactsForDay(day, tripContacts = []) {
+  const list = Array.isArray(tripContacts) ? tripContacts.filter(Boolean) : [];
+  const dayText = [
+    day.startLocation,
+    day.endLocation,
+    day.title,
+    day.sleepLocation,
+    day.mechanicHub,
+    ...(day.checkpoints || []).map((c) => c.name),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  const matchedRegions = Object.entries(REGION_KEYWORDS)
+    .filter(([, keywords]) => keywords.some((kw) => dayText.includes(kw)))
+    .map(([region]) => region);
+
+  const locationWords = [day.startLocation, day.endLocation]
+    .filter(Boolean)
+    .flatMap((loc) => String(loc).toLowerCase().split(/[\s/,()-]+/))
+    .filter((w) => w.length >= 4 && !STOP_WORDS.has(w));
+
+  const matched = list.filter((contact) => {
+    const lc = String(contact).toLowerCase();
+    const matchesRegion = matchedRegions.some(
+      (r) =>
+        lc.includes(r.toLowerCase()) ||
+        REGION_KEYWORDS[r].some((kw) => lc.includes(kw))
+    );
+    const matchesLocWord = locationWords.some((w) => lc.includes(w));
+    return matchesRegion || matchesLocWord;
+  });
+
+  if (matchedRegions.length > 0) {
+    const existingLower = matched.map((m) => String(m).toLowerCase());
+    EMERGENCY_CONTACTS.forEach((c) => {
+      if (!matchedRegions.includes(c.region)) return;
+      const alreadyIncluded = existingLower.some((e) => e.includes(c.name.toLowerCase()));
+      if (!alreadyIncluded) {
+        const formatted = `${c.name} (${c.region})${c.contact ? ` — Tel: ${c.contact}` : ''} · ${c.note}`;
+        matched.push(formatted);
+        existingLower.push(formatted.toLowerCase());
+      }
+    });
+  }
+
+  if (matched.length > 0) return matched;
+  return list.slice(0, 3);
+}
+
+/** One timeline row: dot on the rail + content. */
+function Stop({ kind = 'stop', title, note, km, hazard }) {
+  const isEnd = kind === 'start' || kind === 'end';
+  const isMarker = kind === 'fuel' || kind === 'mechanic';
+  return (
+    <li className="relative pl-8 pb-3 last:pb-0">
+      {/* dot / marker on the rail */}
+      <span
+        className="absolute left-0 top-[3px] flex items-center justify-center w-[18px] h-[18px] rounded-full"
+        style={{
+          background: hazard ? 'var(--tu-danger-bg)' : isMarker ? 'var(--tu-card-2)' : 'var(--tu-bg)',
+          border: `2px solid ${
+            hazard ? 'var(--tu-danger)' : isEnd ? 'var(--tu-text)' : 'var(--tu-line)'
+          }`,
+        }}
+      >
+        {hazard ? (
+          <AlertTriangle className="w-[10px] h-[10px]" style={{ color: 'var(--tu-danger)' }} />
+        ) : kind === 'fuel' ? (
+          <Fuel className="w-[10px] h-[10px] text-[var(--tu-text-2)]" />
+        ) : kind === 'mechanic' ? (
+          <Wrench className="w-[10px] h-[10px] text-[var(--tu-text-2)]" />
+        ) : null}
+      </span>
+
+      <div className="flex items-baseline justify-between gap-3">
+        <p
+          className={isMarker ? 'tu-sub' : 'text-[14px] text-[var(--tu-text)]'}
+          style={{ fontWeight: isEnd ? 600 : 400, color: hazard ? 'var(--tu-danger)' : undefined }}
+        >
+          {title}
+        </p>
+        {km && <span className="tu-sub shrink-0">{km}</span>}
+      </div>
+      {note && <p className="tu-sub mt-0.5">{note}</p>}
+    </li>
+  );
+}
+
+export default function ItineraryCard({ day, weather, emergencyContacts = [] }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [corridorOpen, setCorridorOpen] = useState(false);
+
   const startLoc = day.startLocation || 'Start';
   const endLoc = day.endLocation || 'Destination';
-  const mapsUrl = `https://www.google.com/maps/dir/${encodeURIComponent(
-    startLoc + ', Pakistan'
-  )}/${encodeURIComponent(endLoc + ', Pakistan')}`;
 
-  const distText = day.distanceKm != null ? `${day.distanceKm} km` : day.distance || 'N/A';
-  const durText = day.durationHrs != null ? `${day.durationHrs} hrs` : day.duration || 'N/A';
+  const dist = day.distanceKm != null ? `${day.distanceKm} km` : day.distance || null;
+  const dur =
+    day.durationHrs != null
+      ? `${day.durationHrs}h`
+      : day.duration
+        ? String(day.duration).replace(/\s*(?:hrs?|hours?)/i, 'h')
+        : null;
+  const nightStat = getNightStat(weather, day.altitudeM);
+  const statsLine = [dist, dur, nightStat].filter(Boolean).join(' · ');
 
-  const getAltitudeBadgeClass = (level, metres) => {
-    if (level === 'EXTREME' || (metres && metres >= 4000)) {
-      return 'bg-error-container/40 text-error border-error/30';
-    }
-    if (level === 'HIGH' || (metres && metres >= 3000)) {
-      return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-    }
-    if (level === 'MID' || (metres && metres >= 1800)) {
-      return 'bg-secondary-container/30 text-secondary border-secondary/30';
-    }
-    return 'bg-surface-highest text-outline border-white/5';
-  };
+  /* Build the ordered timeline: checkpoints + fuel/mechanic markers inline */
+  const items = [];
+  (day.checkpoints || []).forEach((cp) => {
+    const t = String(cp.type || '').toLowerCase();
+    items.push({
+      sortKm: Number(cp.kmFromStart) || 0,
+      kind: t === 'fuel' ? 'fuel' : 'stop',
+      title: cp.name,
+      note: cp.note,
+      km: cp.kmFromStart != null ? `~${cp.kmFromStart} km` : null,
+      hazard: t === 'hazard' || HAZARD_RE.test(cp.note || ''),
+    });
+  });
+  (day.fuelStops || []).forEach((f, i) => {
+    const m = String(f).match(/(\d+)\s*km/i);
+    items.push({
+      sortKm: m ? Number(m[1]) : 9998 + i,
+      kind: 'fuel',
+      title: f,
+    });
+  });
+  if (day.mechanicHub) {
+    items.push({ sortKm: 9998.5, kind: 'mechanic', title: `Mechanic: ${day.mechanicHub}` });
+  }
+  items.sort((a, b) => a.sortKm - b.sortKm);
 
-  const getCheckpointBadgeColor = (type) => {
-    const t = String(type || '').toLowerCase();
-    if (t === 'lake') return 'bg-sky-500/20 text-sky-300 border-sky-500/30';
-    if (t === 'pass') return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
-    if (t === 'fuel') return 'bg-primary/20 text-primary border-primary/30';
-    if (t === 'town') return 'bg-surface-highest text-on-surface-variant border-white/10';
-    return 'bg-secondary-container/40 text-secondary border-secondary/30';
-  };
+  const hasMore =
+    day.bikeAdvisory || (Array.isArray(day.highlights) && day.highlights.length > 0);
 
-  const hasCheckpoints = Array.isArray(day.checkpoints) && day.checkpoints.length > 0;
+  const sleepText = day.sleepLocation || `${endLoc}, Pakistan`;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    /pakistan/i.test(sleepText) ? sleepText : `${sleepText}, Pakistan`
+  )}`;
+  const phoneMatch = String(day.sleepLocation || '').match(/(\+?\d[\d\s-]{8,}\d)/);
+  const phone = phoneMatch ? phoneMatch[1] : null;
+
+  const dayContacts = filterContactsForDay(day, emergencyContacts);
 
   return (
-    <div className="group relative bg-surface rounded-2xl p-6 transition-all hover:bg-surface-high border border-white/5 space-y-5">
-      <div className="absolute -left-3 top-6 w-1 h-12 bg-secondary rounded-full"></div>
-
-      {/* Top Header Row + Pillar 1 (Highway Corridor) */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-4">
-        <div className="flex items-start md:items-center gap-4">
-          <p className="font-headline text-4xl font-bold text-outline-variant group-hover:text-secondary transition-colors shrink-0">
-            {String(day.day).padStart(2, '0')}
+    <article className="tu-card" style={{ padding: 16 }}>
+      {/* Day header: 3 scannable stats + tap for highways */}
+      <header>
+        <h4 className="text-[18px] leading-snug" style={{ fontWeight: 600 }}>
+          Day {day.day} · {startLoc} → {endLoc}
+        </h4>
+        {(statsLine || day.highwayCorridor) && (
+          <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+            {statsLine && (
+              <p className="text-[14px] text-[var(--tu-text)]" style={{ fontWeight: 600 }}>
+                {statsLine}
+              </p>
+            )}
+            {day.highwayCorridor && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 tu-label cursor-pointer"
+                aria-expanded={corridorOpen}
+                onClick={() => setCorridorOpen((o) => !o)}
+              >
+                Highways
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${corridorOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+            )}
+          </div>
+        )}
+        {corridorOpen && day.highwayCorridor && (
+          <p className="tu-sub mt-2">
+            {day.highwayCorridor}
+            {day.altitudeM != null ? ` · Peak ${Number(day.altitudeM).toLocaleString()} m` : ''}
           </p>
-          <div className="space-y-1">
-            <h4 className="font-headline font-bold text-lg leading-snug">{day.title}</h4>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-mono">
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="w-3 h-3 text-secondary shrink-0" />
-                {startLoc} → {endLoc}
-              </span>
-              {day.highwayCorridor && (
-                <span className="inline-flex items-center gap-1 bg-primary/15 text-primary border border-primary/25 px-2.5 py-0.5 rounded-md font-sans font-bold text-[11px]">
-                  <Route className="w-3 h-3 shrink-0" />
-                  {day.highwayCorridor}
-                </span>
+        )}
+      </header>
+
+      {/* Vertical timeline */}
+      <ol className="relative mt-6">
+        <span
+          aria-hidden="true"
+          className="absolute left-[8px] top-2 bottom-2 w-px"
+          style={{ background: 'var(--tu-line)' }}
+        />
+        <Stop kind="start" title={startLoc} />
+        {items.map((it, i) => (
+          <Stop key={i} {...it} />
+        ))}
+        {day.fuelWarning && (
+          <Stop kind="fuel" hazard title={day.fuelWarning} />
+        )}
+        <Stop kind="end" title={endLoc} />
+      </ol>
+
+      {/* Road surface: pillar 3, one line; extras behind a tap */}
+      {day.roadSurface && (
+        <p className="tu-sub mt-4">
+          <span className="tu-strong" style={{ fontSize: 13 }}>
+            Road:
+          </span>{' '}
+          {day.roadSurface}
+        </p>
+      )}
+      {hasMore && (
+        <div className="mt-2">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 tu-label cursor-pointer"
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((o) => !o)}
+          >
+            {moreOpen ? 'Less' : 'More about this day'}
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {moreOpen && (
+            <div className="mt-2 space-y-2">
+              {day.bikeAdvisory && <p className="tu-sub">{day.bikeAdvisory}</p>}
+              {Array.isArray(day.highlights) && day.highlights.length > 0 && (
+                <ul className="space-y-1">
+                  {day.highlights.slice(0, 4).map((h, i) => (
+                    <li key={i} className="tu-sub">
+                      {h}
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
-          {/* Real distance & duration badge */}
-          <span className="bg-surface-highest text-on-surface font-mono text-xs font-bold px-3 py-1 rounded-full border border-white/5">
-            {distText} · {durText}
-          </span>
-
-          {/* Altitude level badge */}
-          {day.altitudeM != null && (
-            <span
-              className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border font-mono ${getAltitudeBadgeClass(
-                day.altitudeLevel,
-                day.altitudeM
-              )}`}
-            >
-              <Mountain className="w-3 h-3" />
-              {day.altitudeM}m
-            </span>
           )}
+        </div>
+      )}
 
-          {/* Google Maps Link */}
+      {/* Day warnings: one line each, tap to expand (rider-specific safety info) */}
+      {Array.isArray(day.warnings) && day.warnings.length > 0 && (
+        <ul className="mt-6 space-y-1">
+          {day.warnings.map((w, i) => (
+            <WarningRow key={i} text={w} />
+          ))}
+        </ul>
+      )}
+
+      {/* Overnight block: distinct end-of-day card */}
+      <section
+        className="mt-6 rounded-xl p-4"
+        style={{ background: 'var(--tu-card-2)', border: '1px solid var(--tu-line)' }}
+      >
+        <p className="tu-label">Overnight stay</p>
+        <p className="mt-1 text-[16px]" style={{ fontWeight: 600 }}>
+          {day.sleepLocation || 'Local valley guesthouse'}
+        </p>
+        {day.mobileSignal && <p className="tu-sub mt-1">Signal: {day.mobileSignal}</p>}
+        {day.tips && <p className="tu-sub mt-1">Tip: {day.tips}</p>}
+        <div className="mt-4 flex flex-wrap gap-2">
           <a
             href={mapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs font-bold text-secondary hover:text-primary transition-colors bg-secondary/10 hover:bg-secondary/20 px-3 py-1 rounded-full min-h-[32px]"
+            className="tu-btn-ghost"
           >
-            Maps <ExternalLink className="w-3 h-3" />
+            <MapPin className="w-4 h-4" />
+            Map
           </a>
+          {phone && (
+            <a href={`tel:${phone.replace(/[^\d+]/g, '')}`} className="tu-btn-ghost">
+              <Phone className="w-4 h-4" />
+              Call
+            </a>
+          )}
         </div>
-      </div>
+      </section>
 
-      {/* Pillar 2: En-Route Checkpoints, Lakes & Named Viewpoints Timeline */}
-      {hasCheckpoints ? (
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold text-outline uppercase tracking-widest font-label flex items-center gap-1.5">
-              <Compass className="w-3.5 h-3.5 text-secondary" />
-              En-Route Waypoints, Lakes &amp; Named Viewpoints
-            </p>
-            <span className="text-[10px] font-mono text-outline">Ordered Start → Finish</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            {day.checkpoints.map((cp, idx) => (
-              <div
-                key={idx}
-                className="bg-surface-highest/60 border border-white/5 rounded-xl p-3 flex flex-col justify-between gap-1.5"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span
-                    className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${getCheckpointBadgeColor(
-                      cp.type
-                    )}`}
-                  >
-                    {cp.type || 'Stop'}
-                  </span>
-                  {cp.kmFromStart != null && (
-                    <span className="font-mono text-[10px] font-bold text-outline">
-                      ~{cp.kmFromStart} km
-                    </span>
+      {/* Emergency contacts filtered to this day's route */}
+      {dayContacts.length > 0 && (
+        <section className="mt-6 pt-4 border-t border-[var(--tu-line)] space-y-2.5">
+          <p className="tu-label">
+            Emergency contacts · {startLoc} → {endLoc}
+          </p>
+          <ul className="space-y-2">
+            {dayContacts.map((contact, i) => {
+              const contactPhone = extractPhone(contact);
+              return (
+                <li key={i} className="flex items-start justify-between gap-3 text-[14px] text-[var(--tu-text)]">
+                  <span className="min-w-0 flex-1">{contact}</span>
+                  {contactPhone && (
+                    <a
+                      href={`tel:${contactPhone.replace(/[^\d+]/g, '')}`}
+                      className="shrink-0 inline-flex items-center gap-1 text-[13px] text-[var(--tu-brand)] hover:underline"
+                      style={{ fontWeight: 600 }}
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      {contactPhone}
+                    </a>
                   )}
-                </div>
-                <p className="font-bold text-xs text-on-surface leading-snug">{cp.name}</p>
-                {cp.note && (
-                  <p className="text-[11px] text-on-surface-variant leading-tight">{cp.note}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {/* 3-Column Tactical Breakdown (Highlights/Surface, Fuel/Mechanic, Signal/Sleep) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2 border-t border-white/5">
-        {/* Column 1: Pillar 3 (Road Surface, Terrain & Key Sights) */}
-        <div className="space-y-2.5">
-          <p className="text-[10px] font-bold text-outline uppercase tracking-widest font-label">
-            Road Surface &amp; Sights
-          </p>
-          {day.roadSurface && (
-            <div className="bg-surface-highest/50 border border-white/5 rounded-xl p-2.5 space-y-1">
-              <p className="text-xs font-bold text-on-surface">{day.roadSurface}</p>
-              {day.bikeAdvisory && (
-                <p className="text-[11px] text-on-surface-variant leading-relaxed">
-                  {day.bikeAdvisory}
-                </p>
-              )}
-            </div>
-          )}
-          {day.highlights?.length > 0 && (
-            <ul className="space-y-1 pt-1">
-              {day.highlights.slice(0, 4).map((h, i) => (
-                <li key={i} className="text-xs text-on-surface-variant flex items-start gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-secondary shrink-0 mt-0.5" />
-                  <span>{h}</span>
                 </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* Column 2: Pillar 4A (Fuel Stops, Gaps & Mechanic Hub) */}
-        <div className="space-y-2.5">
-          <p className="text-[10px] font-bold text-outline uppercase tracking-widest font-label">
-            Fuel &amp; Mechanic Hubs
-          </p>
-          {day.fuelStops?.length > 0 ? (
-            <div className="space-y-1">
-              {day.fuelStops.map((fuel, i) => (
-                <p key={i} className="text-xs text-on-surface-variant flex items-center gap-1.5">
-                  <Fuel className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>{fuel}</span>
-                </p>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-outline italic">Top up at departure town</p>
-          )}
-
-          {day.fuelWarning && (
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2">
-              <p className="text-[11px] text-amber-300 font-medium leading-tight flex items-start gap-1.5">
-                <Fuel className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
-                <span>{day.fuelWarning}</span>
-              </p>
-            </div>
-          )}
-
-          {day.mechanicHub && (
-            <div className="bg-surface-highest/40 border border-white/5 rounded-lg p-2 flex items-start gap-1.5 text-[11px] text-on-surface-variant">
-              <Wrench className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-              <span>
-                <strong className="text-on-surface">Mechanic: </strong>
-                {day.mechanicHub}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Column 3: Pillar 4B (Signal, Night Stay & Pro Tip) */}
-        <div className="space-y-2.5">
-          <p className="text-[10px] font-bold text-outline uppercase tracking-widest font-label">
-            Night Basecamp &amp; Signal
-          </p>
-          <p className="font-bold text-tertiary text-sm">
-            {day.sleepLocation || 'Local Valley Guesthouse'}
-          </p>
-
-          {day.mobileSignal && (
-            <div className="bg-surface-highest/40 border border-white/5 rounded-lg p-2 flex items-start gap-1.5 text-[11px] text-on-surface-variant">
-              <Wifi className="w-3.5 h-3.5 text-secondary shrink-0 mt-0.5" />
-              <span>
-                <strong className="text-on-surface">Signal: </strong>
-                {day.mobileSignal}
-              </span>
-            </div>
-          )}
-
-          {day.tips && (
-            <p className="text-xs text-on-surface-variant bg-surface-highest/50 p-2.5 rounded-xl border border-white/5 leading-relaxed">
-              <span className="font-bold text-primary">Pro Tip: </span>
-              {day.tips}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Warnings Row */}
-      {day.warnings?.length > 0 && (
-        <div className="pt-3 border-t border-white/5 flex flex-wrap gap-2">
-          {day.warnings.map((w, i) => (
-            <span
-              key={i}
-              className="inline-flex items-center gap-1 bg-error-container/30 text-error text-xs px-3 py-1 rounded-full font-label border border-error/20"
-            >
-              <AlertTriangle className="w-3 h-3 shrink-0" />
-              <span>{w}</span>
-            </span>
-          ))}
-        </div>
+              );
+            })}
+          </ul>
+        </section>
       )}
-    </div>
+    </article>
   );
 }
